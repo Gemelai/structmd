@@ -2,6 +2,7 @@
 name = "structmd-lint"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 description = "Schema-driven linter for structured markdown files"
 
 [[bin]]

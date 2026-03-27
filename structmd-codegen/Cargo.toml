@@ -2,6 +2,7 @@
 name = "structmd-codegen"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 description = "Generate typed Rust config loaders from structured markdown schemas"
 
 [dependencies]
