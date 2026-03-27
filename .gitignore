@@ -1,0 +1,36 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# Secrets
+secrets.toml
+*.secret
+*.key
+*.pem
+.env
+
+# OS junk
+.DS_Store
+._*
+Thumbs.db
+
+# Editor state
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Runtime artifacts
+*.sock
+*.pid
+*.bak
+*.log
+*.db
+
+# Rust analyzer
+rust-project.json
+
+# Cache
+.cache/
