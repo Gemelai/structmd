@@ -78,44 +78,30 @@ fn parse_expected_errors(text: &str) -> Vec<ExpectedError> {
 }
 
 /// Check that an expected error appears in the actual mdlint output.
-/// We parse the actual output as conf.md too and match fields.
+/// The output is a markdown table — match by checking each row contains the expected values.
 fn actual_contains_expected(actual_text: &str, expected: &ExpectedError) -> bool {
-    let doc = structmd::parse::parse(actual_text);
-    let sections = doc
-        .nodes
-        .first()
-        .map(|n| n.sections.as_slice())
-        .unwrap_or(&[]);
+    // Simple text matching on table rows — each row is a | delimited line
+    for line in actual_text.lines() {
+        if !line.starts_with('|') || line.contains("---") {
+            continue;
+        }
+        // Skip header row
+        if line.contains("code") && line.contains("fix") {
+            continue;
+        }
 
-    'outer: for sec in sections {
-        let prop = |k: &str| {
-            sec.properties
-                .iter()
-                .find(|p| p.key == k)
-                .map(|p| p.value.as_str())
-        };
+        let matches_code = expected.code.as_ref()
+            .map_or(true, |c| line.contains(c.as_str()));
+        let matches_section = expected.section.as_ref()
+            .map_or(true, |s| line.contains(s.as_str()));
+        let matches_key = expected.key.as_ref()
+            .map_or(true, |k| line.contains(k.as_str()));
+        let matches_got = expected.got.as_ref()
+            .map_or(true, |g| line.contains(g.as_str()));
 
-        if let Some(ref code) = expected.code {
-            if prop("code") != Some(code.as_str()) {
-                continue 'outer;
-            }
+        if matches_code && matches_section && matches_key && matches_got {
+            return true;
         }
-        if let Some(ref section) = expected.section {
-            if prop("section") != Some(section.as_str()) {
-                continue 'outer;
-            }
-        }
-        if let Some(ref key) = expected.key {
-            if prop("key") != Some(key.as_str()) {
-                continue 'outer;
-            }
-        }
-        if let Some(ref got) = expected.got {
-            if prop("got") != Some(got.as_str()) {
-                continue 'outer;
-            }
-        }
-        return true;
     }
     false
 }

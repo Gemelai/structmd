@@ -117,13 +117,86 @@ impl ErrorFormatter {
 
 // ── Render functions ──
 
-/// Render a single error as conf.md.
+/// Render a single error as a dense markdown table (default).
 pub fn render(source: &str, error: &dyn Diagnostic) -> String {
     render_all(source, &[error])
 }
 
-/// Render multiple errors as conf.md.
+/// Render multiple errors as a dense markdown table (default).
 pub fn render_all(source: &str, errors: &[&dyn Diagnostic]) -> String {
+    let formatted: Vec<ErrorFormatter> = errors
+        .iter()
+        .map(|e| {
+            let mut f = ErrorFormatter::new();
+            e.render(&mut f);
+            f
+        })
+        .collect();
+
+    // Determine which columns have data
+    let has_line = formatted.iter().any(|f| f.line.is_some());
+    let has = |key: &str| formatted.iter().any(|f| f.get_field(key).is_some());
+    let has_file = has("file");
+    let has_section = has("section");
+    let has_key = has("key");
+    let has_got = has("got");
+
+    let mut out = String::new();
+    out.push_str(&format!("# {} — {} error(s)\n\n", source, errors.len()));
+
+    // Header
+    let mut cols = Vec::new();
+    if has_line { cols.push("line"); }
+    if has_file { cols.push("file"); }
+    if has_section { cols.push("section"); }
+    cols.push("code");
+    if has_key { cols.push("key"); }
+    if has_got { cols.push("got"); }
+    cols.push("fix");
+
+    out.push_str(&format!("| {} |\n", cols.join(" | ")));
+    out.push_str(&format!("|{}|\n", cols.iter().map(|c| "-".repeat(c.len() + 2)).collect::<Vec<_>>().join("|")));
+
+    // Rows
+    for f in &formatted {
+        let mut cells: Vec<String> = Vec::new();
+        if has_line {
+            cells.push(f.line.map_or(String::new(), |l| l.to_string()));
+        }
+        if has_file {
+            cells.push(f.get_field("file").unwrap_or("").to_string());
+        }
+        if has_section {
+            cells.push(f.get_field("section").unwrap_or("").to_string());
+        }
+        cells.push(f.code.clone());
+        if has_key {
+            cells.push(f.get_field("key").unwrap_or("").to_string());
+        }
+        if has_got {
+            cells.push(f.get_field("got").unwrap_or("").to_string());
+        }
+        cells.push(f.derive_fix());
+
+        out.push_str(&format!("| {} |\n", cells.join(" | ")));
+    }
+
+    out
+}
+
+/// Render a Vec of errors as a dense markdown table (default).
+pub fn render_vec<E: Diagnostic>(source: &str, errors: &[E]) -> String {
+    let refs: Vec<&dyn Diagnostic> = errors.iter().map(|e| e as &dyn Diagnostic).collect();
+    render_all(source, &refs)
+}
+
+/// Render a single error as verbose conf.md (one section per error).
+pub fn render_verbose(source: &str, error: &dyn Diagnostic) -> String {
+    render_all_verbose(source, &[error])
+}
+
+/// Render multiple errors as verbose conf.md (one section per error).
+pub fn render_all_verbose(source: &str, errors: &[&dyn Diagnostic]) -> String {
     let mut out = String::new();
     out.push_str(&format!("# {}\n\n", source));
     out.push_str(&format!("{} error(s)\n", errors.len()));
@@ -138,10 +211,10 @@ pub fn render_all(source: &str, errors: &[&dyn Diagnostic]) -> String {
     out
 }
 
-/// Render a Vec of errors implementing Diagnostic.
-pub fn render_vec<E: Diagnostic>(source: &str, errors: &[E]) -> String {
+/// Render a Vec of errors as verbose conf.md (one section per error).
+pub fn render_vec_verbose<E: Diagnostic>(source: &str, errors: &[E]) -> String {
     let refs: Vec<&dyn Diagnostic> = errors.iter().map(|e| e as &dyn Diagnostic).collect();
-    render_all(source, &refs)
+    render_all_verbose(source, &refs)
 }
 
 // ── Legacy Error struct (used by mdlint validate.rs) ──
@@ -222,21 +295,10 @@ impl Diagnostic for Error {
     }
 }
 
-/// Format a list of Error structs as conf.md.
-/// Convenience wrapper for mdlint compatibility.
-pub fn format_errors(source: &str, schema: &str, errors: &[Error]) -> String {
-    let mut out = String::new();
-    out.push_str(&format!("# {}\n\n", source));
-    out.push_str(&format!("{} error(s) against {}\n", errors.len(), schema));
-
-    for (i, error) in errors.iter().enumerate() {
-        let mut f = ErrorFormatter::new();
-        error.render(&mut f);
-        out.push_str(&format!("\n## error-{}\n\n", i + 1));
-        f.write_to(&mut out);
-    }
-
-    out
+/// Format a list of Error structs as a dense markdown table.
+/// Convenience wrapper for structmd-lint.
+pub fn format_errors(source: &str, _schema: &str, errors: &[Error]) -> String {
+    render_vec(source, errors)
 }
 
 impl fmt::Display for Error {
@@ -302,27 +364,25 @@ mod tests {
         }
     }
 
-    // ── Trait and formatter tests ──
+    // ── Dense table format tests ──
 
     #[test]
-    fn render_single_error() {
+    fn render_single_error_table() {
         let err = AppError::MissingProperty {
             line: 3,
             section: "Container".into(),
             key: "image".into(),
         };
         let output = render("myapp", &err);
-        assert!(output.contains("# myapp"));
-        assert!(output.contains("1 error(s)"));
-        assert!(output.contains("## error-1"));
-        assert!(output.contains("- line: 3"));
-        assert!(output.contains("- section: Container"));
-        assert!(output.contains("- key: image"));
-        assert!(output.contains("- code: missing_property"));
+        assert!(output.contains("# myapp — 1 error(s)"), "missing header:\n{}", output);
+        assert!(output.contains("| line"), "missing table header:\n{}", output);
+        assert!(output.contains("missing_property"), "missing code:\n{}", output);
+        assert!(output.contains("image"), "missing key:\n{}", output);
+        assert!(output.contains("Container"), "missing section:\n{}", output);
     }
 
     #[test]
-    fn render_multiple_errors() {
+    fn render_multiple_errors_table() {
         let errors = vec![
             AppError::MissingProperty {
                 line: 3,
@@ -338,11 +398,10 @@ mod tests {
             },
         ];
         let output = render_vec("myapp", &errors);
-        assert!(output.contains("2 error(s)"));
-        assert!(output.contains("## error-1"));
-        assert!(output.contains("## error-2"));
-        assert!(output.contains("- key: image"));
-        assert!(output.contains("- got: maybe"));
+        assert!(output.contains("2 error(s)"), "wrong count:\n{}", output);
+        // Both rows present
+        assert!(output.contains("image"), "missing first error:\n{}", output);
+        assert!(output.contains("maybe"), "missing second error:\n{}", output);
     }
 
     #[test]
@@ -353,7 +412,7 @@ mod tests {
             key: "image".into(),
         };
         let output = render("myapp", &err);
-        assert!(output.contains("- fix: add `- image: <value>`"));
+        assert!(output.contains("add `- image: <value>`"), "missing fix:\n{}", output);
     }
 
     #[test]
@@ -366,7 +425,7 @@ mod tests {
             expected: "red, green, or blue".into(),
         };
         let output = render("myapp", &err);
-        assert!(output.contains("- fix: change `color` to red, green, or blue"));
+        assert!(output.contains("change `color` to red, green, or blue"), "missing fix:\n{}", output);
     }
 
     #[test]
@@ -376,8 +435,8 @@ mod tests {
             source: std::io::Error::new(std::io::ErrorKind::NotFound, "not found"),
         };
         let output = render("myapp", &err);
-        assert!(output.contains("- code: io_error"));
-        assert!(output.contains("- fix: check that the file exists and is readable"));
+        assert!(output.contains("io_error"), "missing code:\n{}", output);
+        assert!(output.contains("check that the file exists"), "missing fix:\n{}", output);
     }
 
     #[test]
@@ -388,21 +447,18 @@ mod tests {
             got: "every tuesday".into(),
         };
         let output = render("myapp", &err);
-        // Should use the override, not the auto-derived one
-        assert!(output.contains("- fix: use `every 5m`, `every 2h`, or 5-field cron"));
+        assert!(output.contains("use `every 5m`, `every 2h`, or 5-field cron"), "missing fix override:\n{}", output);
     }
 
     #[test]
-
-    #[test]
-    fn legacy_error_struct_implements_diagnostic() {
+    fn legacy_error_struct_renders() {
         let err = Error::new("test.md", 5, "Container", "missing_property")
             .with_key("image")
             .with_expected("string");
         let output = render("mdlint", &err);
-        assert!(output.contains("- code: missing_property"));
-        assert!(output.contains("- key: image"));
-        assert!(output.contains("- fix: add `- image: <value>`"));
+        assert!(output.contains("missing_property"), "missing code:\n{}", output);
+        assert!(output.contains("image"), "missing key:\n{}", output);
+        assert!(output.contains("add `- image: <value>`"), "missing fix:\n{}", output);
     }
 
     #[test]
@@ -410,6 +466,30 @@ mod tests {
         let errors: Vec<AppError> = vec![];
         let output = render_vec("myapp", &errors);
         assert!(output.contains("0 error(s)"));
-        assert!(!output.contains("## error-"));
+    }
+
+    // ── Verbose format tests ──
+
+    #[test]
+    fn verbose_has_sections() {
+        let err = AppError::MissingProperty {
+            line: 3,
+            section: "Container".into(),
+            key: "image".into(),
+        };
+        let output = render_verbose("myapp", &err);
+        assert!(output.contains("## error-1"), "verbose should have sections:\n{}", output);
+        assert!(output.contains("- code: missing_property"), "verbose should have properties:\n{}", output);
+    }
+
+    #[test]
+    fn dense_has_no_sections() {
+        let err = AppError::MissingProperty {
+            line: 3,
+            section: "Container".into(),
+            key: "image".into(),
+        };
+        let output = render("myapp", &err);
+        assert!(!output.contains("## error-"), "dense should not have sections:\n{}", output);
     }
 }
