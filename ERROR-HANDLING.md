@@ -1,13 +1,13 @@
-# Error Handling with confmd
+# Error Handling with structmd
 
-How to make your Rust program report errors as structured conf.md — readable by humans, parseable by agents.
+How to make your Rust program report errors as structured markdown — readable by humans, parseable by agents.
 
 ## The short version
 
 1. Define an enum with one variant per error kind
 2. Put `?` at your failure sites — the compiler tells you what to handle
 3. Implement `Diagnostic` on your enum — one match arm per variant
-4. Call `confmd::errors::render()` in main
+4. Call `structmd::errors::render()` in main
 
 Your program's error output becomes structured markdown that an agent can read, locate, and fix.
 
@@ -44,7 +44,7 @@ fn load_config(path: &std::path::Path) -> Result<Config, MyError> {
     let text = std::fs::read_to_string(path)
         .map_err(|e| MyError::Io { path: path.into(), source: e })?;
 
-    let doc = confmd::parse::parse(&text);
+    let doc = structmd::parse::parse(&text);
 
     // If the property is missing, ? sends MyError::MissingProperty up
     let name = doc.nodes[0].sections[0]
@@ -68,8 +68,8 @@ The compiler forces you to handle every `Result`. If you use `?`, you must provi
 This tells confmd how to render your error as conf.md. One match arm per variant. Write the code, write the fields:
 
 ```rust
-impl confmd::Diagnostic for MyError {
-    fn render(&self, f: &mut confmd::ErrorFormatter) {
+impl structmd_errors::Diagnostic for MyError {
+    fn render(&self, f: &mut structmd::ErrorFormatter) {
         match self {
             MyError::Io { path, source } => {
                 f.code("io_error");
@@ -106,7 +106,7 @@ The formatter adds the fix text automatically based on the code. You don't write
 ```rust
 fn main() {
     if let Err(e) = run() {
-        eprint!("{}", confmd::errors::render("my-program", &e));
+        eprint!("{}", structmd::errors::render("my-program", &e));
         std::process::exit(1);
     }
 }
@@ -190,7 +190,7 @@ Render them all:
 ```rust
 fn main() {
     if let Err(errors) = run() {
-        eprint!("{}", confmd::errors::render_all("my-program", &errors));
+        eprint!("{}", structmd::errors::render_all("my-program", &errors));
         std::process::exit(1);
     }
 }
@@ -198,7 +198,7 @@ fn main() {
 
 ## Error codes
 
-The error codes come from the conf.md error schema (`schemas/errors.schema.conf.md`). Use the standard codes when they fit:
+The error codes come from the structured markdown error schema (`schemas/errors.schema.conf.md`). Use the standard codes when they fit:
 
 | Code | Meaning |
 |------|---------|
