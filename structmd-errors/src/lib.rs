@@ -5,7 +5,7 @@
 /// 2. Implementing `Diagnostic` on it
 /// 3. Calling `render()` or `render_all()` in main
 ///
-/// See ERROR-HANDLING.md for the full guide.
+/// See error-handling.md for the full guide.
 
 use std::fmt;
 

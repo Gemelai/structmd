@@ -1,6 +1,6 @@
 # Code Blocks Schema
 
-```bnf
+```grammar
 document ::= H1("Prompts") role+
 role     ::= H2(IDENTIFIER) property+
 ```

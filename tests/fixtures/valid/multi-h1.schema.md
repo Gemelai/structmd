@@ -1,6 +1,6 @@
 # Multi-H1 Schema
 
-```bnf
+```grammar
 document ::= settings items
 settings ::= H1("Settings") property+
 items    ::= H1("Items") item+

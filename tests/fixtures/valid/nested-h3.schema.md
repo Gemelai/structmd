@@ -1,6 +1,6 @@
 # Nested Schema
 
-```bnf
+```grammar
 document ::= H1("Root") parent
 parent   ::= H2("Parent") child+
 child    ::= H3(IDENTIFIER) property+

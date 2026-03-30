@@ -137,6 +137,14 @@ That's it. When the program fails, the output looks like:
 
 An agent reading that knows: read line 3 of config.conf.md, add `- name: <value>` to the `item` section. A human reading it sees the same thing, formatted as readable markdown.
 
+## On large error enums
+
+A large error enum is a measurement, not a problem. It tells you something true about your program that was always true — you just couldn't see it before.
+
+With `anyhow` you have 100 failure modes too. They're dissolved into strings scattered across the codebase. The enum didn't create the complexity, it surfaced it. And once it's surfaced you can reason about it: 40 variants all related to config loading might be a signal that config loading should be its own subsystem with its own error type. The enum is a forcing function for that conversation. `anyhow` lets you avoid the conversation indefinitely.
+
+Some programs are genuinely complex and a large enum reflects that honestly. A multi-process orchestrator has many things that can go wrong, and pretending otherwise with loose error strings doesn't reduce the complexity — it just hides it until 2am.
+
 ## Adding new error kinds
 
 When you hit a new failure case and no existing variant fits:

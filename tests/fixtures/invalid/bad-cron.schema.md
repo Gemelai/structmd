@@ -1,6 +1,6 @@
 # Schema
 
-```bnf
+```grammar
 document ::= H1("Tasks") task+
 task     ::= H2(IDENTIFIER) property+
 ```

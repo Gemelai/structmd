@@ -1,7 +1,7 @@
 /// Schema types for conf.md validation and codegen.
 ///
 /// A schema is itself a conf.md file containing:
-///   - ```bnf block: structural grammar
+///   - ```grammar block: structural grammar
 ///   - ```types or ```types:production block: property constraints
 ///   - ```table or ```table:production block: table column constraints
 
@@ -177,7 +177,7 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
             }
             i += 1; // skip closing fence
 
-            if tag == "bnf" {
+            if tag == "grammar" {
                 bnf_blocks.push(content);
             } else if let Some(prod) = tag.strip_prefix("types:") {
                 scoped_types
@@ -200,7 +200,7 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
     }
 
     if bnf_blocks.is_empty() {
-        return Err("schema has no ```bnf block".into());
+        return Err("schema has no ```grammar block".into());
     }
 
     // Parse BNF productions
@@ -651,14 +651,14 @@ mod tests {
     fn no_bnf_block_errors() {
         let err = load_schema("# Schema\nNo code blocks here.", "test");
         assert!(err.is_err());
-        assert!(err.unwrap_err().contains("no ```bnf block"));
+        assert!(err.unwrap_err().contains("no ```grammar block"));
     }
 
     #[test]
     fn simple_flat_bnf() {
         let schema = load("\
 # Schema
-```bnf
+```grammar
 document ::= H1(\"Tools\") tool+
 tool     ::= H2(SNAKE_CASE) prose property* table
 ```
@@ -687,7 +687,7 @@ tool     ::= H2(SNAKE_CASE) prose property* table
     #[test]
     fn multi_h1_bnf() {
         let schema = load("\
-```bnf
+```grammar
 document ::= agyo tasks?
 agyo     ::= H1(\"Agyo\") stuff
 stuff    ::= H2(\"Container\") property+
@@ -708,7 +708,7 @@ task     ::= H2(IDENT) property+
     #[test]
     fn quantifier_one_or_more() {
         let schema = load("\
-```bnf
+```grammar
 document ::= H1(\"T\") item+
 item     ::= H2(IDENT) property+
 ```
@@ -720,7 +720,7 @@ item     ::= H2(IDENT) property+
     #[test]
     fn quantifier_zero_or_more() {
         let schema = load("\
-```bnf
+```grammar
 document ::= H1(\"T\") item*
 item     ::= H2(IDENT) property*
 ```
@@ -732,7 +732,7 @@ item     ::= H2(IDENT) property*
     #[test]
     fn quantifier_optional() {
         let schema = load("\
-```bnf
+```grammar
 document ::= H1(\"T\") item?
 item     ::= H2(IDENT)
 ```
@@ -746,7 +746,7 @@ item     ::= H2(IDENT)
     #[test]
     fn scoped_types_blocks() {
         let schema = load("\
-```bnf
+```grammar
 document  ::= H1(\"Root\") alpha beta
 alpha     ::= H2(\"Alpha\") property+
 beta      ::= H2(\"Beta\") property+
@@ -775,7 +775,7 @@ beta      ::= H2(\"Beta\") property+
     #[test]
     fn global_types_fallback() {
         let schema = load("\
-```bnf
+```grammar
 document ::= H1(\"T\") item+
 item     ::= H2(IDENT) property+
 ```
@@ -873,7 +873,7 @@ item     ::= H2(IDENT) property+
     #[test]
     fn inline_comment_stripped() {
         let schema = load("\
-```bnf
+```grammar
 document ::= H1(\"T\") item+
 item     ::= H2(IDENT) property+
 ```
@@ -891,7 +891,7 @@ item     ::= H2(IDENT) property+
     #[test]
     fn h3_nests_under_h2_in_schema() {
         let schema = load("\
-```bnf
+```grammar
 document ::= H1(\"Root\") parent
 parent   ::= H2(\"Parent\") child+
 child    ::= H3(IDENT) property+
@@ -957,7 +957,7 @@ child    ::= H3(IDENT) property+
     #[test]
     fn circular_reference_detected() {
         let err = load_schema("\
-```bnf
+```grammar
 document ::= a
 a        ::= b
 b        ::= a
@@ -986,7 +986,7 @@ b        ::= a
     #[test]
     fn sozu_schema_structure() {
         let schema = load("\
-```bnf
+```grammar
 document  ::= agyo tasks?
 agyo      ::= H1(\"Agyo\") container servers
 container ::= H2(\"Container\") property+

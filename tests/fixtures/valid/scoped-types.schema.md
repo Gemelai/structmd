@@ -1,6 +1,6 @@
 # Scoped Types Schema
 
-```bnf
+```grammar
 document  ::= H1("Agyo") container servers
 container ::= H2("Container") property+
 servers   ::= H2("Servers") server+

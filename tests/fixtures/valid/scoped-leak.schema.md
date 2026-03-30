@@ -1,6 +1,6 @@
 # Schema
 
-```bnf
+```grammar
 document ::= H1("Root") alpha beta
 alpha    ::= H2("Alpha") property+
 beta     ::= H2("Beta") property+

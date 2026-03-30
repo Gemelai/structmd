@@ -1,6 +1,6 @@
 # Lists Schema
 
-```bnf
+```grammar
 document ::= H1("Config") entry+
 entry    ::= H2(IDENTIFIER) property+
 ```

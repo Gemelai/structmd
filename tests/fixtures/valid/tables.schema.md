@@ -1,6 +1,6 @@
 # Tables Schema
 
-```bnf
+```grammar
 document ::= H1("Tools") tool+
 tool     ::= H2(SNAKE_CASE) prose property* table
 ```

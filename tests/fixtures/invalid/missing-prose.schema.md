@@ -1,6 +1,6 @@
 # Schema
 
-```bnf
+```grammar
 document ::= H1("Tools") tool+
 tool     ::= H2(IDENTIFIER) prose property+
 ```

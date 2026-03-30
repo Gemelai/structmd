@@ -4,7 +4,11 @@ This is the complete context document for any agent taking over development of s
 
 ## What structmd is
 
-A schema system for markdown. Markdown files with rigid structure defined by BNF grammars. Human-readable, LLM-native, git-diff-friendly. Config files, error reports, and any structured document that needs to be both human-readable and machine-parseable.
+A structured document format defined by BNF schemas. structmd documents are not markdown documents that happen to have structure — they are structured documents that happen to be readable as markdown. Markdown renderers will display them sensibly, but the renderer is not the authority on what they mean. The schema is.
+
+Think ASN.1, not TOML. The syntax is borrowed from markdown for human readability and LLM-nativeness. The semantics are entirely structmd's own. Code blocks with info strings are always structured properties — the format owns them. Fenced code blocks, headings, and list items are structural tokens with schema-defined meaning, not presentation hints.
+
+Target use cases: config files, error reports, tool registries, any structured document that needs to be human-readable, machine-parseable, and git-diff-friendly.
 
 The name: **struct**ured **m**ark**d**own. MIT licensed, copyright Susan and Stephen Roylance.
 
@@ -60,7 +64,7 @@ Markdown elements map to config concepts:
 
 Schemas are themselves structmd files containing fenced code blocks:
 
-- `` ```bnf `` — structural grammar
+- `` ```grammar `` — structural grammar
 - `` ```types `` or `` ```types:production `` — property type constraints
 - `` ```table `` or `` ```table:production `` — table column constraints
 - Everything else — documentation (ignored by the loader)
@@ -70,7 +74,7 @@ Schemas are themselves structmd files containing fenced code blocks:
 ```markdown
 # Tool Registry Schema
 
-```bnf
+```grammar
 document ::= H1("Tools") tool+
 tool     ::= H2(SNAKE_CASE) prose property* table
 ```
@@ -295,7 +299,7 @@ Error schema: `schemas/errors.schema.conf.md`
 - **Prose text capture is bare** — the parser collects prose as concatenated lines. Blank lines within prose are lost. Multi-paragraph prose becomes one run-on string.
 - **No cross-field validation** — e.g., "if `type` is `array`, `items` must be present." The linter validates fields independently.
 - **codegen doesn't handle H1-level properties fully** — fixed for orchestrator schema but edge cases may remain.
-- **ERROR-HANDLING.md still says "confmd"** — needs rename to structmd.
+- **error-handling.md confmd references** — audit for any remaining confmd mentions in the error handling doc.
 - **cron validation is basic** — checks format (5 fields or `every Nm/Nh`) but doesn't validate field ranges.
 - **Derive macro for Diagnostic** — `#[derive(Diagnostic)]` would eliminate the hand-written match arms. Not built yet.
 - **No parsers in other languages** — compliance fixtures are language-agnostic and ready for a Python/TypeScript/Go implementation.

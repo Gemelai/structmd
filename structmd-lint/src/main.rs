@@ -1,7 +1,7 @@
 /// mdlint — Schema-driven linter for conf.md files.
 ///
 /// Validates a markdown config file against a conf.md schema
-/// containing ```bnf, ```types, and ```table blocks.
+/// containing ```grammar, ```types, and ```table blocks.
 ///
 /// Usage: mdlint --schema <schema.conf.md> <file.conf.md>
 
@@ -17,7 +17,7 @@ struct Cli {
     /// Path to the conf.md file to lint
     file: PathBuf,
 
-    /// Path to the schema file (conf.md with ```bnf, ```types, ```table blocks)
+    /// Path to the schema file (conf.md with ```grammar, ```types, ```table blocks)
     #[arg(long)]
     schema: PathBuf,
 }

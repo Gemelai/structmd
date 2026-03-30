@@ -422,7 +422,7 @@ mod tests {
     }
 
     const TOOLS_SCHEMA: &str = "\
-```bnf
+```grammar
 document ::= H1(\"Tools\") tool+
 tool     ::= H2(SNAKE_CASE) prose property* table
 ```
@@ -539,7 +539,7 @@ Description.
     }
 
     const SOZU_SCHEMA: &str = "\
-```bnf
+```grammar
 document  ::= agyo tasks?
 agyo      ::= H1(\"Agyo\") container servers
 container ::= H2(\"Container\") property+
@@ -778,7 +778,7 @@ A test task.
     #[test]
     fn one_or_more_section_required() {
         let schema_text = "\
-```bnf
+```grammar
 document ::= H1(\"T\") item+
 item     ::= H2(IDENT) property+
 ```

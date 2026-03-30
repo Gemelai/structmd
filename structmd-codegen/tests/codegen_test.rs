@@ -1,7 +1,7 @@
 use structmd_codegen::generate_from_text;
 
 const TOOLS_SCHEMA: &str = "\
-```bnf
+```grammar
 document ::= H1(\"Tools\") tool+
 tool     ::= H2(SNAKE_CASE) prose property* table
 ```
@@ -20,7 +20,7 @@ tool     ::= H2(SNAKE_CASE) prose property* table
 ";
 
 const SOZU_SCHEMA: &str = "\
-```bnf
+```grammar
 document  ::= agyo tasks?
 agyo      ::= H1(\"Agyo\") container servers
 container ::= H2(\"Container\") property+
