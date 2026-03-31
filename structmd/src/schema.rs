@@ -53,13 +53,11 @@ pub enum ValueType {
     String,
     Bool,
     Enum(Vec<String>),
-    Path,
     Integer,
     Number,
     Text,
     Label,
     List(Box<ValueType>),
-    Cron,
 }
 
 #[derive(Debug, Clone)]
@@ -551,12 +549,10 @@ fn parse_value_type(s: &str) -> Result<ValueType, String> {
     match s {
         "string" => Ok(ValueType::String),
         "bool" => Ok(ValueType::Bool),
-        "path" => Ok(ValueType::Path),
         "integer" => Ok(ValueType::Integer),
         "number" => Ok(ValueType::Number),
         "text" => Ok(ValueType::Text),
         "label" => Ok(ValueType::Label),
-        "cron" => Ok(ValueType::Cron),
         _ => Err(format!("unknown type: {}", s)),
     }
 }
@@ -818,16 +814,6 @@ item     ::= H2(IDENT) property+
     }
 
     #[test]
-    fn type_cron() {
-        assert_eq!(parse_value_type("cron").unwrap(), ValueType::Cron);
-    }
-
-    #[test]
-    fn type_path() {
-        assert_eq!(parse_value_type("path").unwrap(), ValueType::Path);
-    }
-
-    #[test]
     fn type_unknown_errors() {
         assert!(parse_value_type("widget").is_err());
     }
@@ -1008,7 +994,7 @@ task      ::= H2(IDENTIFIER) prose? property+
 ```
 
 ```types:task
-@schedule : cron, required
+@schedule : string, required
 @run      : string, required
 @log      : bool, default(true)
 ```
@@ -1041,7 +1027,7 @@ task      ::= H2(IDENTIFIER) prose? property+
         assert!(task.expects_prose);
         assert!(task.expects_properties);
         let t_props = task.properties.as_ref().unwrap();
-        assert_eq!(t_props["schedule"].value_type, ValueType::Cron);
+        assert_eq!(t_props["schedule"].value_type, ValueType::String);
         assert_eq!(t_props["log"].default.as_deref(), Some("true"));
 
         // No global properties

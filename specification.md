@@ -7,7 +7,7 @@ Copyright Susan Roylance and Stephen Roylance. MIT licensed.
 
 structmd is a structured document format. structmd documents are not markdown documents that happen to have structure — they are structured documents that happen to be readable as markdown. A markdown renderer will display them sensibly, but the renderer is not the authority on what they mean. The schema is.
 
-The format is defined by this specification and by the compliance test suite in `tests/fixtures/`. Where this document is ambiguous, the compliance suite is normative.
+The format is defined by this specification and by the compliance test suite in `tests/fixtures/`. Where this document and the compliance suite disagree, the compliance suite is normative. The spec describes the suite; if they conflict, the spec has a bug.
 
 ---
 
@@ -48,7 +48,7 @@ Bold property (reserved, currently equivalent to plain):
 - **key:**
 ```
 
-The key is everything between the prefix and the first `: `. The value is everything after `: `, trimmed. A property with no value (ends with `:`) has an empty string value. Both plain and bold forms are recognized. The `bold` flag is preserved in the AST and reserved for future semantic use.
+The key is everything between the prefix and the first `: `. The value is everything after `: `, trimmed. A property with no value (ends with `:`) has an empty string value. Both plain and bold forms are recognized. The `bold` flag is preserved in the AST and reserved for future semantic use. Implementors MUST NOT assign semantics to the bold flag — treat bold and plain properties as equivalent until a future version of this specification says otherwise. A version marker will accompany any change that gives the bold flag meaning.
 
 ### 1.3 Code fences
 
@@ -100,14 +100,14 @@ Processing is a single forward pass:
 2. An H2 line opens a new `Section` at level 2 under the current H1Node. Any prior H2 section is closed.
 3. An H3 line opens a new `Section` at level 3 nested under the current H2 section. Any prior H3 section is closed.
 4. Properties, tables, and tagged code fences are attached to the innermost open section (H3 if open, else H2, else H1).
-5. A tagged code fence is stored as a `Property` with `key = tag` and `value = block content`.
-6. Prose lines are captured into the current section's `prose` field. Prose ends at the first property, table row, code fence, child heading, or blank line followed by a structural element. Blank lines within prose are not preserved — prose is a single concatenated string.
+5. A tagged code fence is stored as a `Property` with `key = tag` and `value = block content`. This is intentional: tagged fences and list-item properties occupy the same namespace in the section's property list. A schema addresses both with `@key`. On collision — a fence tag and a list-item key with the same name in the same section — the fence wins; the list-item property is discarded. Schema authors should avoid names that are valid fence tags if they also expect list-item properties of the same name.
+6. Prose lines are captured into the current section's `prose` field. A prose run begins after the heading and ends at the first property, table row, code fence, or child heading. Blank lines within prose are preserved as paragraph breaks (`\n\n` in the captured string). Leading and trailing blank lines are stripped. Prose ends only at a structural element or end of document — not at a blank line.
 7. Multiple H1 headings produce multiple `H1Node` entries in the document. This is valid.
 8. H1 nodes may have their own properties (appearing before any H2).
 
 ### 2.2 Prose capture
 
-Prose is text that appears between a heading and the first structural element (property, table, code fence, child heading). Consecutive prose lines are joined with a single space. Blank lines within a prose run are not significant — they do not produce paragraph breaks.
+Prose is everything between a heading and the first structural element (property, table, code fence, or child heading). Blank lines within prose are preserved — they become `\n` in the captured string, producing paragraph breaks. Leading and trailing blank lines are stripped. The prose field contains the full text a human would read between the heading and the first structural element, with internal paragraph structure intact.
 
 ---
 
@@ -216,11 +216,11 @@ The `@` prefix is literal. The `#` character begins an inline comment; everythin
 | `bool` | `true` or `false` (case-insensitive) |
 | `integer` | Signed 64-bit integer |
 | `number` | 64-bit floating point |
-| `path` | String starting with `/` or `./` |
-| `label` | Property name only; value is not validated |
+| `label` | Property name only; value is not validated (see below) |
 | `enum(a, b, c)` | One of the listed values (case-sensitive) |
 | `list(T)` | Comma-separated values, each validated as type T. Values may not contain commas. |
-| `cron` | `every Nm` or `every Nh` (N a positive integer), or a 5-field cron expression |
+
+The `label` type is for properties whose key is significant but whose value is unstructured or schema-defined at a higher level — for example, a property whose key names a parameter and whose value is a freeform description. The linter validates that the property is present but does not validate its value.
 
 ### 5.2 Modifiers
 
@@ -282,7 +282,21 @@ Unknown properties (present in document, not in schema) are ignored.
 
 ---
 
-## 7. Compliance Suite
+## 7. Linter Output
+
+A conformant linter MUST write its output to stdout. Stderr is reserved for fatal errors that prevent validation from running (e.g., file not found, schema parse failure).
+
+On success (zero errors), a conformant linter MUST exit with status 0 and produce no output.
+
+On failure, a conformant linter MUST exit with a non-zero status and output errors as a structmd document conforming to the errors schema. The minimum required output is a markdown table with one row per error, containing at minimum the columns `code`, `file`, and `line`. Additional columns (`section`, `key`, `got`, `fix`) SHOULD be included when the relevant data is available.
+
+The output document is itself valid structmd and may be parsed, validated, or piped to another tool. Agents consuming linter output SHOULD parse it as a structmd document rather than processing it as plain text.
+
+A linter that produces output only to stderr, or that produces unstructured plain text, does not conform to this specification.
+
+---
+
+## 8. Compliance Suite
 
 The `tests/fixtures/` directory contains language-agnostic compliance fixtures.
 
@@ -298,3 +312,13 @@ A conformant implementation must validate each valid fixture with zero errors.
 - `name.errors.md` — expected errors
 
 A conformant implementation must produce at least the errors listed in the `.errors.md` file. The `.errors.md` file is itself a structmd document: each H2 section describes one expected error with properties `code`, `section`, `key`, and `got`. An implementation passes if every expected error appears in its output (matched on whichever fields are present). Extra errors beyond those expected are allowed.
+
+---
+
+## 9. Provenance
+
+structmd began as a solution to a practical problem — structured config files that agents could read and write reliably — before it had a specification or a compliance suite. The implementation came first, built iteratively with AI assistance to solve real problems in a real system. The architecture emerged from using it. The compliance suite was extracted from behavior that already worked. The specification was written last, from the compliance suite, as a description of what the system had become.
+
+This is backwards from how format specifications are usually written. The normal order is: specify, implement, test. Here the order was: use, observe, specify. That inversion was only possible because the implementation cost was low enough to iterate freely — to let the design reveal itself through use rather than planning it in advance.
+
+The reference implementation is an artifact of that process, not a ground-up construction from the spec. Where the spec and the implementation disagree, the compliance suite is the arbiter.

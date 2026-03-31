@@ -1,4 +1,4 @@
-/// Structured error reporting in conf.md format.
+/// Structured error reporting in structmd format.
 ///
 /// Any program can report errors as structured markdown by:
 /// 1. Defining an error enum
@@ -11,7 +11,7 @@ use std::fmt;
 
 // ── Diagnostic trait ──
 
-/// Implement this on your error enum to enable conf.md error output.
+/// Implement this on your error enum to enable structmd error output.
 /// Each variant writes its fields to the formatter.
 pub trait Diagnostic {
     fn render(&self, f: &mut ErrorFormatter);
@@ -19,7 +19,7 @@ pub trait Diagnostic {
 
 // ── ErrorFormatter ──
 
-/// Collects error fields and renders them as conf.md properties.
+/// Collects error fields and renders them as structmd properties.
 /// Used inside `Diagnostic::render()` implementations.
 pub struct ErrorFormatter {
     code: String,

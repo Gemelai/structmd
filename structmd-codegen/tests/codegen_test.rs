@@ -42,7 +42,7 @@ task      ::= H2(IDENTIFIER) prose? property+
 ```
 
 ```types:task
-@schedule : cron, required
+@schedule : string, required
 @run      : string, required
 @log      : bool, default(true)
 ```

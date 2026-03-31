@@ -1,10 +1,16 @@
 # structmd
 
-Structured documents for systems where humans, agents, and programs all need to read and write the same things.
+A structured document format with no punctuation syntax.
 
-A structmd document is a markdown file with a schema. The schema defines what headings appear, in what order, with what properties and types. A document that conforms to its schema can be parsed into a typed structure, validated for correctness, and rendered to human readers — all without separate representations for each audience.
+Structure in structmd comes from line prefixes — `#`, `##`, `-` — not from brackets, quotes, or commas. That single property is why the format works for three different audiences for the same reason:
 
-The format is deliberately not general-purpose markdown. It is a structured document format whose syntax is borrowed from markdown for readability. A markdown renderer will display a structmd document sensibly. The renderer is not the authority on what the document means. The schema is.
+- **Easy to generate**, even for weak models. There are no brackets to match, no quotes to escape, no commas to forget. A model that can write a markdown list can emit valid structmd.
+- **Easy to review** for humans. The structure is visually obvious. No punctuation noise to read past.
+- **Deterministic to parse**. Every line classifies itself from its prefix. No ambiguity, no backtracking, no context-sensitive tokenization.
+
+A structmd document has a schema. The schema defines which headings appear, in what order, with what typed properties. A document that passes validation has exactly the structure the schema promised — the consumer, whether an agent or a process, can trust it without defensive parsing.
+
+The format is not general-purpose markdown. It is a structured document format whose syntax is borrowed from markdown. A markdown renderer will display it sensibly. The renderer is not the authority on what the document means. The schema is.
 
 ## What it looks like
 
@@ -40,12 +46,6 @@ Its schema:
 
 The schema is also a structmd document. No separate schema language.
 
-## Why structured text
-
-Programs exchange data at boundaries — config files, error reports, API responses, log output. The usual choices are human-readable formats that are hard to parse reliably (freeform text, ad-hoc markdown) or machine-readable formats that are hard for humans to read and write (JSON, TOML, protobuf). Agents add a third party to that exchange who can work with either, but work best when the structure is explicit and the format is close to natural language.
-
-structmd is an attempt to hold all three at once. The structure is explicit enough for a parser. The syntax is close enough to natural language for a human or an agent to write without consulting a reference. The schema is in the same format as the document, so the same tools read both.
-
 ## Error handling
 
 structmd includes an opinionated pattern for structured error output at process boundaries.
@@ -53,7 +53,7 @@ structmd includes an opinionated pattern for structured error output at process 
 The opinion: errors should be defined as explicit enum variants, each carrying the data relevant to that failure mode. Not strings. Not opaque boxes. Named, typed variants — one per thing that can go wrong.
 
 ```rust
-enum SozuError {
+enum AppError {
     MissingProperty { line: usize, section: String, key: String },
     InvalidValue { line: usize, section: String, key: String, got: String, expected: String },
     IoError { path: String, source: std::io::Error },
@@ -63,10 +63,10 @@ enum SozuError {
 Implement `Diagnostic` on the enum. Each variant writes its fields to an `ErrorFormatter`:
 
 ```rust
-impl Diagnostic for SozuError {
+impl Diagnostic for AppError {
     fn render(&self, f: &mut ErrorFormatter) {
         match self {
-            SozuError::MissingProperty { line, section, key } => {
+            AppError::MissingProperty { line, section, key } => {
                 f.code("missing_property");
                 f.line(*line);
                 f.field("section", section);

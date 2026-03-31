@@ -227,11 +227,6 @@ fn invalid_bad_enum() {
 }
 
 #[test]
-fn invalid_bad_cron() {
-    test_invalid("bad-cron");
-}
-
-#[test]
 fn invalid_bad_bool() {
     test_invalid("bad-bool");
 }

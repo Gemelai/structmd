@@ -533,7 +533,7 @@ fn wrap_quantity(type_name: &str, qty: Quantity) -> String {
 
 fn value_type_to_rust(vt: &ValueType) -> String {
     match vt {
-        ValueType::String | ValueType::Path | ValueType::Cron | ValueType::Text => {
+        ValueType::String | ValueType::Text => {
             "String".to_string()
         }
         ValueType::Enum(_) => "String".to_string(),

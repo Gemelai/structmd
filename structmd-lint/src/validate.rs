@@ -7,13 +7,11 @@ fn type_label(vt: &ValueType) -> &'static str {
         ValueType::String => "string",
         ValueType::Bool => "bool",
         ValueType::Enum(_) => "enum",
-        ValueType::Path => "path",
         ValueType::Integer => "integer",
         ValueType::Number => "number",
         ValueType::Text => "text",
         ValueType::Label => "label",
         ValueType::List(_) => "list",
-        ValueType::Cron => "cron",
     }
 }
 
@@ -311,17 +309,6 @@ fn validate_value(
                 );
             }
         }
-        ValueType::Path => {
-            if !value.starts_with('/') && !value.starts_with("./") && !value.starts_with("../") {
-                errors.push(
-                    LintError::new(file,line, section, "invalid_value")
-                        .with_key(field)
-                        .with_got(value)
-                        .with_expected("path starting with / or ./")
-                        .with_fix(&format!("change `{}` to a path (e.g. `/path/to/thing`)", field)),
-                );
-            }
-        }
         ValueType::Integer => {
             if value.parse::<i64>().is_err() {
                 errors.push(
@@ -351,51 +338,6 @@ fn validate_value(
                 }
             }
         }
-        ValueType::Cron => {
-            validate_cron(value, line, section, field, file, errors);
-        }
-    }
-}
-
-fn validate_cron(
-    value: &str,
-    line: usize,
-    section: &str,
-    field: &str,
-    file: &str,
-    errors: &mut Vec<LintError>,
-) {
-    let value = value.trim();
-
-    if let Some(rest) = value.strip_prefix("every ") {
-        let rest = rest.trim();
-        if let Some(num) = rest.strip_suffix('m').or(rest.strip_suffix('h')) {
-            if num.parse::<u32>().is_ok() {
-                return;
-            }
-        }
-        errors.push(
-            LintError::new(file,line, section, "invalid_value")
-                .with_key(field)
-                .with_got(value)
-                .with_expected("interval: every Nm or every Nh")
-                .with_fix(&format!("change `{}` to `every 5m`, `every 2h`, etc.", field)),
-        );
-        return;
-    }
-
-    let fields: Vec<&str> = value.split_whitespace().collect();
-    if fields.len() != 5 {
-        errors.push(
-            LintError::new(file,line, section, "invalid_value")
-                .with_key(field)
-                .with_got(value)
-                .with_expected("5-field cron or interval (every Nm/Nh)")
-                .with_fix(&format!(
-                    "change `{}` to `every 5m`, `every 2h`, or `0 5 * * *`",
-                    field
-                )),
-        );
     }
 }
 
@@ -561,7 +503,7 @@ task      ::= H2(IDENTIFIER) prose? property+
 ```
 
 ```types:task
-@schedule : cron, required
+@schedule : string, required
 @run      : string, required
 @log      : bool, default(true)
 ```
@@ -685,80 +627,6 @@ A test task.
         assert!(!bool_err.fix.is_empty());
     }
 
-    #[test]
-    fn cron_interval_valid() {
-        let errors = lint(SOZU_SCHEMA, "\
-# Agyo
-## Container
-- image: test
-## Servers
-### s1
-- command: /bin/s1
-# Tasks
-## t1
-- schedule: every 10m
-- run: echo hi
-");
-        let cron_errors: Vec<_> = errors.iter().filter(|e| e.key == "schedule").collect();
-        assert!(cron_errors.is_empty());
-    }
-
-    #[test]
-    fn cron_expression_valid() {
-        let errors = lint(SOZU_SCHEMA, "\
-# Agyo
-## Container
-- image: test
-## Servers
-### s1
-- command: /bin/s1
-# Tasks
-## t1
-- schedule: 0 5 * * *
-- run: echo hi
-");
-        let cron_errors: Vec<_> = errors.iter().filter(|e| e.key == "schedule").collect();
-        assert!(cron_errors.is_empty());
-    }
-
-    #[test]
-    fn cron_invalid_interval() {
-        let errors = lint(SOZU_SCHEMA, "\
-# Agyo
-## Container
-- image: test
-## Servers
-### s1
-- command: /bin/s1
-# Tasks
-## t1
-- schedule: every tuesday
-- run: echo hi
-");
-        let err = errors.iter().find(|e| e.key == "schedule").unwrap();
-        assert_eq!(err.code, "invalid_value");
-        assert_eq!(err.got, "every tuesday");
-        assert!(!err.fix.is_empty());
-    }
-
-    #[test]
-    fn cron_invalid_expression() {
-        let errors = lint(SOZU_SCHEMA, "\
-# Agyo
-## Container
-- image: test
-## Servers
-### s1
-- command: /bin/s1
-# Tasks
-## t1
-- schedule: at 5pm
-- run: echo hi
-");
-        let err = errors.iter().find(|e| e.key == "schedule").unwrap();
-        assert_eq!(err.code, "invalid_value");
-        assert!(!err.fix.is_empty());
-    }
 
     #[test]
     fn list_comma_separated() {

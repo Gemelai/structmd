@@ -65,10 +65,10 @@ The compiler forces you to handle every `Result`. If you use `?`, you must provi
 
 ### 3. Implement `Diagnostic`
 
-This tells confmd how to render your error as conf.md. One match arm per variant. Write the code, write the fields:
+This tells structmd how to render your error. One match arm per variant. Write the code, write the fields:
 
 ```rust
-impl structmd_errors::Diagnostic for MyError {
+impl structmd::Diagnostic for MyError {
     fn render(&self, f: &mut structmd::ErrorFormatter) {
         match self {
             MyError::Io { path, source } => {
@@ -94,7 +94,7 @@ impl structmd_errors::Diagnostic for MyError {
 }
 ```
 
-The method names map to conf.md properties:
+The method names map to structmd properties in the output document:
 - `f.code("io_error")` → `- code: io_error`
 - `f.line(3)` → `- line: 3`
 - `f.field("key", "image")` → `- key: image`
@@ -103,10 +103,12 @@ The formatter adds the fix text automatically based on the code. You don't write
 
 ### 4. Render in main
 
+`Diagnostic`, `ErrorFormatter`, and `render()` are all in the `structmd` crate. There is no separate errors crate.
+
 ```rust
 fn main() {
     if let Err(e) = run() {
-        eprint!("{}", structmd::errors::render("my-program", &e));
+        print!("{}", structmd::render("my-program", &e));
         std::process::exit(1);
     }
 }
@@ -198,7 +200,7 @@ Render them all:
 ```rust
 fn main() {
     if let Err(errors) = run() {
-        eprint!("{}", structmd::errors::render_all("my-program", &errors));
+        print!("{}", structmd::render_all("my-program", &errors));
         std::process::exit(1);
     }
 }
@@ -225,13 +227,23 @@ If none of these fit, use a descriptive snake_case code. The schema can be exten
 
 ## Fix text
 
-The formatter derives fix text from the error code and fields. You don't write it:
+The formatter derives fix text from the error code and fields automatically. The derivation rules are:
 
-| Code | Fix (auto-generated) |
-|------|---------------------|
-| `missing_property` with key `image` | `add \`- image: <value>\`` |
-| `invalid_value` with key `log`, expected `bool` | `change \`log\` to \`true\` or \`false\`` |
-| `io_error` | `check that the file exists and is readable` |
+| Code | Fields used | Fix text |
+|------|-------------|----------|
+| `missing_property` | `key` | `add \`- {key}: <value>\`` |
+| `missing_section` | `expected` | `add \`{expected}\` section` |
+| `missing_prose` | `section` | `add text after \`## {section}\`` |
+| `missing_table` | — | `add a markdown table` |
+| `invalid_value` | `key`, `expected` | `change \`{key}\` to {expected}` |
+| `invalid_value` | `key` only | `fix the value of \`{key}\`` |
+| `invalid_value` | neither | `fix the value` |
+| `invalid_name` | — | `rename to match the expected pattern` |
+| `io_error` | — | `check that the file exists and is readable` |
+| `column_mismatch` | `expected` | `rename column to \`{expected}\`` |
+| `row_count` | — | `add at least one data row to the table` |
+| `section_count` | — | `add the required sections` |
+| any other code | — | (no fix text) |
 
 If the auto-generated fix isn't right for your case, override it:
 

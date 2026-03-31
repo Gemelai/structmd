@@ -210,11 +210,16 @@ pub fn parse(text: &str) -> Document {
                         node.properties.push(prop);
                     }
                 }
-            } else if collecting_prose && !trimmed.is_empty() {
-                if prose_start.is_none() {
-                    prose_start = Some(lineno);
+            } else if collecting_prose {
+                if !trimmed.is_empty() {
+                    if prose_start.is_none() {
+                        prose_start = Some(lineno);
+                    }
+                    prose_buf.push(trimmed.to_string());
+                } else if prose_start.is_some() {
+                    // blank line within prose — preserve as paragraph break
+                    prose_buf.push(String::new());
                 }
-                prose_buf.push(trimmed.to_string());
             }
             continue;
         }
@@ -287,11 +292,16 @@ pub fn parse(text: &str) -> Document {
         }
 
         // Prose — collect if before structure
-        if !trimmed.is_empty() && !in_table && collecting_prose {
-            if prose_start.is_none() {
-                prose_start = Some(lineno);
+        if !in_table && collecting_prose {
+            if !trimmed.is_empty() {
+                if prose_start.is_none() {
+                    prose_start = Some(lineno);
+                }
+                prose_buf.push(trimmed.to_string());
+            } else if prose_start.is_some() {
+                // blank line within prose — preserve as paragraph break
+                prose_buf.push(String::new());
             }
-            prose_buf.push(trimmed.to_string());
         }
     }
 
@@ -318,8 +328,9 @@ fn ensure_node(doc: &mut Document) -> &mut H1Node {
 }
 
 fn flush_prose_into_sec(sec: &mut Section, buf: &[String], start: Option<usize>) {
-    if !buf.is_empty() {
-        sec.prose = Some(buf.join("\n"));
+    let trimmed = trim_prose(buf);
+    if !trimmed.is_empty() {
+        sec.prose = Some(trimmed);
         sec.prose_line = start;
     }
 }
@@ -331,16 +342,26 @@ fn flush_prose(
     h2: &mut Option<Section>,
     doc: &mut Document,
 ) {
-    if buf.is_empty() {
+    let text = trim_prose(buf);
+    if text.is_empty() {
         return;
     }
-    let text = buf.join("\n");
     if let Some(sec) = h3.as_mut().or(h2.as_mut()) {
         sec.prose = Some(text);
         sec.prose_line = start;
     } else if let Some(node) = doc.nodes.last_mut() {
         node.prose = Some(text);
     }
+}
+
+fn trim_prose(buf: &[String]) -> String {
+    // Strip leading and trailing blank lines, preserve internal ones
+    let start = buf.iter().position(|s| !s.is_empty()).unwrap_or(buf.len());
+    let end = buf.iter().rposition(|s| !s.is_empty()).map(|i| i + 1).unwrap_or(0);
+    if start >= end {
+        return String::new();
+    }
+    buf[start..end].join("\n")
 }
 
 fn flush_h3(h2: &mut Option<Section>, h3: &mut Option<Section>) {
