@@ -288,7 +288,8 @@ fn validate_value(
             }
         }
         ValueType::Bool => {
-            if value != "true" && value != "false" {
+            let lower = value.to_lowercase();
+            if lower != "true" && lower != "false" {
                 errors.push(
                     LintError::new(file,line, section, "invalid_value")
                         .with_key(field)

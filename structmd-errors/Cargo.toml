@@ -1,6 +1,0 @@
-[package]
-name = "structmd-errors"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-description = "Structured markdown error reporting — Diagnostic trait and ErrorFormatter"

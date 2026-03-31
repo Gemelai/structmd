@@ -61,10 +61,7 @@ fn main() {
     let schema_str = cli.schema.display().to_string();
     let errors = validate::validate(&doc, &schema, &path_str);
 
-    if errors.is_empty() {
-        let section_count: usize = doc.nodes.iter().map(|n| n.sections.len()).sum();
-        println!("ok: {} ({} sections, 0 errors)", path_str, section_count);
-    } else {
+    if !errors.is_empty() {
         print!("{}", structmd::errors::format_errors("mdlint", &schema_str, &errors));
         process::exit(1);
     }

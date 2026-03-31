@@ -4,7 +4,7 @@ A structured document format with no punctuation syntax.
 
 Structure in structmd comes from line prefixes — `#`, `##`, `-` — not from brackets, quotes, or commas. That single property is why the format works for three different audiences for the same reason:
 
-- **Easy to generate**, even for weak models. There are no brackets to match, no quotes to escape, no commas to forget. A model that can write a markdown list can emit valid structmd.
+- **Easy to generate**, even for weak models. Schemas are written once by a developer or capable model — that encodes the domain expertise. Documents written against a known schema have no brackets to match, no quotes to escape, no commas to forget. Fill in the fields, write the prose. The linter validates the output and returns structured fix text; the model corrects and retries without human intervention.
 - **Easy to review** for humans. The structure is visually obvious. No punctuation noise to read past.
 - **Deterministic to parse**. Every line classifies itself from its prefix. No ambiguity, no backtracking, no context-sensitive tokenization.
 
@@ -46,6 +46,16 @@ Its schema:
 
 The schema is also a structmd document. No separate schema language.
 
+## Where it fits
+
+Structured formats usually trade off between machine-parseability and human-readability. Formats optimized for machines are precise but require tooling to read and write comfortably. Formats optimized for humans are readable but tend to be ambiguous or fragile to parse.
+
+structmd sits at the intersection of both. The structure is deterministic — every line classifies itself, there is no ambiguity, a conformant parser produces the same AST from the same input every time. The syntax is readable without tooling — the same document a parser processes is the document a human edits in a text editor and reviews in a diff.
+
+The complexity ceiling that makes this possible is deliberate. structmd handles shallow, bounded structure well: a few levels of headings, typed properties, optional prose. Data that needs deeper nesting or more expressive type structure belongs in a format built for that. structmd is the right choice when the document needs to be correct enough to validate, simple enough to read at a glance, and writable by a human or a model without special tooling.
+
+Good fits: config files, error reports, tool registries, evaluation documents, agent-authored forms that a human needs to review.
+
 ## Error handling
 
 structmd includes an opinionated pattern for structured error output at process boundaries.
@@ -63,8 +73,8 @@ enum AppError {
 Implement `Diagnostic` on the enum. Each variant writes its fields to an `ErrorFormatter`:
 
 ```rust
-impl Diagnostic for AppError {
-    fn render(&self, f: &mut ErrorFormatter) {
+impl structmd::errors::Diagnostic for AppError {
+    fn render(&self, f: &mut structmd::errors::ErrorFormatter) {
         match self {
             AppError::MissingProperty { line, section, key } => {
                 f.code("missing_property");
@@ -81,7 +91,7 @@ impl Diagnostic for AppError {
 At the process boundary, render the errors as a structmd table:
 
 ```rust
-let output = structmd::render_vec("myapp", &errors);
+let output = structmd::errors::render_vec("myapp", &errors);
 ```
 
 The output is a structmd document. A human can read it. An agent can parse it. Another process can validate it against the errors schema.

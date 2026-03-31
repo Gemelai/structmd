@@ -68,8 +68,8 @@ The compiler forces you to handle every `Result`. If you use `?`, you must provi
 This tells structmd how to render your error. One match arm per variant. Write the code, write the fields:
 
 ```rust
-impl structmd::Diagnostic for MyError {
-    fn render(&self, f: &mut structmd::ErrorFormatter) {
+impl structmd::errors::Diagnostic for MyError {
+    fn render(&self, f: &mut structmd::errors::ErrorFormatter) {
         match self {
             MyError::Io { path, source } => {
                 f.code("io_error");
@@ -103,12 +103,12 @@ The formatter adds the fix text automatically based on the code. You don't write
 
 ### 4. Render in main
 
-`Diagnostic`, `ErrorFormatter`, and `render()` are all in the `structmd` crate. There is no separate errors crate.
+`Diagnostic`, `ErrorFormatter`, and the render functions live in `structmd::errors`.
 
 ```rust
 fn main() {
     if let Err(e) = run() {
-        print!("{}", structmd::render("my-program", &e));
+        print!("{}", structmd::errors::render_vec("my-program", &[e]));
         std::process::exit(1);
     }
 }
@@ -200,7 +200,7 @@ Render them all:
 ```rust
 fn main() {
     if let Err(errors) = run() {
-        print!("{}", structmd::render_all("my-program", &errors));
+        print!("{}", structmd::errors::render_vec("my-program", &errors));
         std::process::exit(1);
     }
 }

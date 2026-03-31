@@ -190,12 +190,12 @@ pub fn render_vec<E: Diagnostic>(source: &str, errors: &[E]) -> String {
     render_all(source, &refs)
 }
 
-/// Render a single error as verbose conf.md (one section per error).
+/// Render a single error as verbose structmd (one section per error).
 pub fn render_verbose(source: &str, error: &dyn Diagnostic) -> String {
     render_all_verbose(source, &[error])
 }
 
-/// Render multiple errors as verbose conf.md (one section per error).
+/// Render multiple errors as verbose structmd (one section per error).
 pub fn render_all_verbose(source: &str, errors: &[&dyn Diagnostic]) -> String {
     let mut out = String::new();
     out.push_str(&format!("# {}\n\n", source));
@@ -211,7 +211,7 @@ pub fn render_all_verbose(source: &str, errors: &[&dyn Diagnostic]) -> String {
     out
 }
 
-/// Render a Vec of errors as verbose conf.md (one section per error).
+/// Render a Vec of errors as verbose structmd (one section per error).
 pub fn render_vec_verbose<E: Diagnostic>(source: &str, errors: &[E]) -> String {
     let refs: Vec<&dyn Diagnostic> = errors.iter().map(|e| e as &dyn Diagnostic).collect();
     render_all_verbose(source, &refs)
@@ -320,8 +320,6 @@ impl std::error::Error for Error {}
 mod tests {
     use super::*;
 
-    // ── Sample error enum (what a service would define) ──
-
     #[derive(Debug)]
     enum AppError {
         Io { path: String, source: std::io::Error },
@@ -364,8 +362,6 @@ mod tests {
         }
     }
 
-    // ── Dense table format tests ──
-
     #[test]
     fn render_single_error_table() {
         let err = AppError::MissingProperty {
@@ -399,7 +395,6 @@ mod tests {
         ];
         let output = render_vec("myapp", &errors);
         assert!(output.contains("2 error(s)"), "wrong count:\n{}", output);
-        // Both rows present
         assert!(output.contains("image"), "missing first error:\n{}", output);
         assert!(output.contains("maybe"), "missing second error:\n{}", output);
     }
@@ -467,8 +462,6 @@ mod tests {
         let output = render_vec("myapp", &errors);
         assert!(output.contains("0 error(s)"));
     }
-
-    // ── Verbose format tests ──
 
     #[test]
     fn verbose_has_sections() {

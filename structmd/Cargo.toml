@@ -6,4 +6,3 @@ license = "MIT"
 description = "Structured markdown — parser and schema loader with BNF grammars"
 
 [dependencies]
-structmd-errors = { path = "../structmd-errors" }

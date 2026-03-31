@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "structmd-errors",
     "structmd",
     "structmd-lint",
     "structmd-codegen",
