@@ -1,93 +1,148 @@
-/// Schema types for conf.md validation and codegen.
+/// Schema types for structmd validation and codegen.
 ///
-/// A schema is itself a conf.md file containing:
-///   - ```grammar block: structural grammar
-///   - ```types or ```types:production block: property constraints
-///   - ```table or ```table:production block: table column constraints
+/// A schema is itself a structmd file containing:
+///   - ` ```grammar ` block: structural grammar (document shape)
+///   - ` ```types ` or ` ```types:production ` block: property type constraints
+///   - ` ```table ` or ` ```table:production ` block: table column constraints
+///
+/// Load a schema with [`load_schema`], then use it with a validator or codegen.
 
 use std::collections::BTreeMap;
 
 // ── Public types ──
 
+/// A fully parsed and resolved schema, ready for validation or codegen.
 #[derive(Debug)]
 pub struct Schema {
+    /// Schema name (passed to [`load_schema`], used in error output).
     pub name: String,
+    /// Expected H1-level nodes, in grammar order.
     pub nodes: Vec<H1Schema>,
+    /// Properties declared in a bare ` ```types ` block (apply to any section without scoped types).
     pub global_properties: BTreeMap<String, PropertySchema>,
+    /// Table declared in a bare ` ```table ` block.
     pub global_table: Option<TableSchema>,
 }
 
+/// Schema for an H1-level node.
 #[derive(Debug)]
 pub struct H1Schema {
+    /// Grammar production that expanded into this node, if any.
     pub production_name: Option<String>,
+    /// Expected heading text. `None` means any text is accepted.
     pub text: Option<String>,
+    /// How many times this node may appear.
     pub quantity: Quantity,
+    /// Whether this node expects top-level properties.
     pub expects_properties: bool,
+    /// Scoped property constraints for this node's production.
     pub properties: Option<BTreeMap<String, PropertySchema>>,
+    /// Expected H2 children.
     pub children: Vec<SectionSchema>,
 }
 
+/// Schema for an H2 or H3 section.
 #[derive(Debug)]
 pub struct SectionSchema {
+    /// Grammar production that expanded into this section, if any.
     pub production_name: Option<String>,
+    /// Heading level: 2 or 3.
     pub level: u8,
+    /// Pattern the section heading must match.
     pub name_pattern: NamePattern,
+    /// How many times this section may appear.
     pub quantity: Quantity,
+    /// Whether this section requires prose.
     pub expects_prose: bool,
+    /// Whether this section requires properties.
     pub expects_properties: bool,
+    /// Whether this section requires a table.
     pub expects_table: bool,
+    /// Scoped property constraints for this section's production.
     pub properties: Option<BTreeMap<String, PropertySchema>>,
+    /// Scoped table constraint for this section's production.
     pub table: Option<TableSchema>,
+    /// Expected H3 children (only meaningful when `level == 2`).
     pub children: Vec<SectionSchema>,
 }
 
+/// Type and modifier constraints for a single property.
 #[derive(Debug, Clone)]
 pub struct PropertySchema {
+    /// Expected value type.
     pub value_type: ValueType,
+    /// Whether this property must be present.
     pub required: bool,
+    /// Default value to use when the property is absent.
     pub default: Option<String>,
 }
 
+/// The type system for structmd property values.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
+    /// Arbitrary single-line text with no format constraint.
     String,
+    /// `true` or `false` (case-insensitive).
     Bool,
+    /// One of a fixed set of string values.
     Enum(Vec<String>),
+    /// Whole number.
     Integer,
+    /// Floating-point or integer number.
     Number,
+    /// Multi-line text (typically from a fenced code block property).
     Text,
+    /// A value-less property used as a label or flag (`- key:`).
     Label,
+    /// A comma-separated list of another type.
     List(Box<ValueType>),
 }
 
+/// Table column definitions.
 #[derive(Debug, Clone)]
 pub struct TableSchema {
+    /// Expected columns, in declared order.
     pub columns: Vec<ColumnSchema>,
 }
 
+/// Type constraint for one table column.
 #[derive(Debug, Clone)]
 pub struct ColumnSchema {
+    /// Expected column header name.
     pub name: String,
+    /// Expected value type for cells in this column.
     pub column_type: ValueType,
 }
 
+/// Pattern that a section heading must match.
 #[derive(Debug)]
 pub enum NamePattern {
+    /// Heading must equal this exact string.
     Exact(String),
+    /// Heading must be `snake_case` (lowercase letters, digits, underscores).
     SnakeCase,
+    /// Heading must be `kebab-case` (lowercase letters, digits, hyphens).
     KebabCase,
+    /// Heading must be an identifier (letters/digits/underscores/hyphens, starts with a letter).
     Ident,
+    /// Any heading is accepted.
     Any,
 }
 
+/// How many times a node or section may appear.
 #[derive(Debug, Clone, Copy)]
 pub enum Quantity {
+    /// Exactly once.
     One,
+    /// One or more times.
     OneOrMore,
+    /// Zero or more times.
     ZeroOrMore,
+    /// Zero or one time.
     Optional,
 }
 
+/// Whether a structural element (prose, table, etc.) is required or optional.
 #[derive(Debug, Default, PartialEq)]
 pub enum Presence {
     Required,
@@ -96,6 +151,7 @@ pub enum Presence {
 }
 
 impl NamePattern {
+    /// Returns `true` if `name` satisfies this pattern.
     pub fn matches(&self, name: &str) -> bool {
         match self {
             NamePattern::Exact(expected) => name == expected,
@@ -124,6 +180,7 @@ impl NamePattern {
         }
     }
 
+    /// Human-readable label for this pattern, used in error messages.
     pub fn label(&self) -> &str {
         match self {
             NamePattern::Exact(s) => s,
@@ -134,6 +191,9 @@ impl NamePattern {
         }
     }
 
+    /// Returns `true` if section names are free-form (i.e. this is not an [`Exact`](Self::Exact) match).
+    ///
+    /// Used by codegen to decide whether to generate a named field or a `HashMap`.
     pub fn is_dynamic(&self) -> bool {
         !matches!(self, NamePattern::Exact(_))
     }
@@ -141,8 +201,16 @@ impl NamePattern {
 
 // ── Schema loader ──
 
+/// Parse and resolve a schema from structmd text.
+///
+/// `schema_name` is used in error messages and stored in [`Schema::name`].
+///
+/// # Errors
+///
+/// Returns an error string if the schema has no ` ```grammar ` block,
+/// an unknown type annotation, an unknown name pattern, or a circular production reference.
 pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
-    let mut bnf_blocks = Vec::new();
+    let mut grammar_blocks = Vec::new();
     let mut global_types_blocks = Vec::new();
     let mut global_table_blocks = Vec::new();
     let mut scoped_types: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -176,7 +244,7 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
             i += 1; // skip closing fence
 
             if tag == "grammar" {
-                bnf_blocks.push(content);
+                grammar_blocks.push(content);
             } else if let Some(prod) = tag.strip_prefix("types:") {
                 scoped_types
                     .entry(prod.trim().to_string())
@@ -197,21 +265,21 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
         }
     }
 
-    if bnf_blocks.is_empty() {
+    if grammar_blocks.is_empty() {
         return Err("schema has no ```grammar block".into());
     }
 
-    // Parse BNF productions
+    // Parse grammar productions
     let mut productions: Vec<(String, Vec<String>)> = Vec::new();
-    for bnf in &bnf_blocks {
-        for line in bnf.lines() {
+    for block in &grammar_blocks {
+        for line in block.lines() {
             let line = line.trim();
             if line.is_empty() {
                 continue;
             }
             if let Some((name, body)) = line.split_once("::=") {
                 let name = name.trim().to_string();
-                let tokens = tokenize_bnf(body.trim());
+                let tokens = tokenize_grammar(body.trim());
                 productions.push((name, tokens));
             }
         }
@@ -236,7 +304,7 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
     let global_properties = parse_types_blocks(&global_types_blocks)?;
     let global_table = parse_table_blocks(&global_table_blocks)?;
 
-    // Resolve BNF into tree
+    // Resolve grammar into tree
     let production_map: BTreeMap<String, Vec<String>> = productions.iter().cloned().collect();
     let root_tokens = production_map
         .get("document")
@@ -277,7 +345,7 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
     })
 }
 
-// ── BNF resolution ──
+// ── Grammar resolution ──
 
 fn resolve_tokens(
     tokens: &[String],
@@ -375,7 +443,7 @@ fn resolve_tokens(
         // Named production reference
         if let Some(ref_tokens) = productions.get(base) {
             if visited.contains(&base.to_string()) {
-                return Err(format!("circular reference in BNF: {}", base));
+                return Err(format!("circular reference in grammar: {}", base));
             }
             visited.push(base.to_string());
             let h1_count_before = h1_nodes.len();
@@ -557,9 +625,9 @@ fn parse_value_type(s: &str) -> Result<ValueType, String> {
     }
 }
 
-// ── BNF tokenizer and helpers ──
+// ── Grammar tokenizer and helpers ──
 
-fn tokenize_bnf(body: &str) -> Vec<String> {
+fn tokenize_grammar(body: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut chars = body.chars().peekable();
     let mut current = String::new();
@@ -641,17 +709,17 @@ mod tests {
         load_schema(text, "test").unwrap()
     }
 
-    // ── BNF basics ──
+    // ── Grammar basics ──
 
     #[test]
-    fn no_bnf_block_errors() {
+    fn no_grammar_block_errors() {
         let err = load_schema("# Schema\nNo code blocks here.", "test");
         assert!(err.is_err());
         assert!(err.unwrap_err().contains("no ```grammar block"));
     }
 
     #[test]
-    fn simple_flat_bnf() {
+    fn simple_flat_grammar() {
         let schema = load("\
 # Schema
 ```grammar
@@ -681,7 +749,7 @@ tool     ::= H2(SNAKE_CASE) prose property* table
     }
 
     #[test]
-    fn multi_h1_bnf() {
+    fn multi_h1_grammar() {
         let schema = load("\
 ```grammar
 document ::= agyo tasks?
@@ -872,7 +940,7 @@ item     ::= H2(IDENT) property+
         assert_eq!(props["image"].value_type, ValueType::String);
     }
 
-    // ── H3 nesting in BNF ──
+    // ── H3 nesting in grammar ──
 
     #[test]
     fn h3_nests_under_h2_in_schema() {
@@ -953,17 +1021,17 @@ b        ::= a
         assert!(err.unwrap_err().contains("circular"));
     }
 
-    // ── BNF tokenizer ──
+    // ── Grammar tokenizer ──
 
     #[test]
     fn tokenizer_respects_parens() {
-        let tokens = tokenize_bnf("H1(\"Hello World\") item+");
+        let tokens = tokenize_grammar("H1(\"Hello World\") item+");
         assert_eq!(tokens, vec!["H1(\"Hello World\")", "item+"]);
     }
 
     #[test]
     fn tokenizer_multiple_spaces() {
-        let tokens = tokenize_bnf("a   b   c");
+        let tokens = tokenize_grammar("a   b   c");
         assert_eq!(tokens, vec!["a", "b", "c"]);
     }
 

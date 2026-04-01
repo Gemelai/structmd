@@ -3,5 +3,6 @@ members = [
     "structmd",
     "structmd-lint",
     "structmd-codegen",
+    "structmd-integration",
 ]
 resolver = "2"

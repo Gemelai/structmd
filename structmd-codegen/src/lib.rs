@@ -1,7 +1,7 @@
 /// structmd-codegen — Generate Rust config loaders from structured markdown schemas.
 ///
 /// Reads a .schema.conf.md file and emits a .rs file containing:
-/// - Typed structs matching the BNF productions
+/// - Typed structs matching the grammar productions
 /// - A parse() function that walks a structmd::parse::Document into those structs
 
 use structmd::schema::{

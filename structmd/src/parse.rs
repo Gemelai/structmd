@@ -1,59 +1,102 @@
-/// conf.md parser — produces an untyped Document tree from markdown text.
+/// structmd parser — produces an untyped [`Document`] tree from structmd text.
 ///
 /// The parser is permissive: it extracts structure without validating.
-/// Validation is done separately against a schema.
+/// Validation is done separately against a schema via [`crate::schema::load_schema`].
 
+/// The root of a parsed structmd document.
+///
+/// A document is a sequence of H1 nodes. Most documents have exactly one.
 #[derive(Debug)]
 pub struct Document {
+    /// Top-level H1 sections. May be empty for a blank input.
     pub nodes: Vec<H1Node>,
 }
 
+/// An H1-level node in the document.
+///
+/// Corresponds to a `# heading` line and everything beneath it until the next H1 or EOF.
 #[derive(Debug)]
 pub struct H1Node {
+    /// The `# heading` line. `None` for an implicit node created when H2 appears before any H1.
     pub heading: Option<Heading>,
+    /// Prose text immediately after the heading, before the first property or H2.
     pub prose: Option<String>,
+    /// Top-level properties (`- key: value`) on this node.
     pub properties: Vec<Property>,
+    /// H2 sections beneath this H1.
     pub sections: Vec<Section>,
 }
 
+/// A heading parsed from `# text`, `## text`, or `### text`.
 #[derive(Debug)]
 pub struct Heading {
+    /// Heading depth: 1, 2, or 3.
     pub level: u8,
+    /// Heading text with leading `#` and whitespace stripped.
     pub text: String,
+    /// 1-based line number of the heading in the source.
     pub line: usize,
 }
 
+/// An H2 or H3 section beneath an H1 node.
+///
+/// H3 sections are nested under H2 sections via [`children`](Section::children).
 #[derive(Debug)]
 pub struct Section {
+    /// The `## heading` or `### heading` line.
     pub heading: Heading,
+    /// Prose text immediately after the heading, before the first property or table.
     pub prose: Option<String>,
+    /// 1-based line number where prose begins.
     pub prose_line: Option<usize>,
+    /// Properties (`- key: value`) in this section.
     pub properties: Vec<Property>,
+    /// Markdown table in this section, if any.
     pub table: Option<Table>,
+    /// H3 children of this section (only populated when this is an H2).
     pub children: Vec<Section>,
 }
 
+/// A property parsed from a `- key: value` line.
 #[derive(Debug)]
 pub struct Property {
+    /// The property key.
     pub key: String,
+    /// The property value, or an empty string for label-only properties (`- key:`).
     pub value: String,
+    /// `true` if the property used bold syntax (`- **key:** value`).
     pub bold: bool,
+    /// 1-based line number of this property in the source.
     pub line: usize,
 }
 
+/// A markdown table parsed from a section.
 #[derive(Debug)]
 pub struct Table {
+    /// 1-based line number of the header row.
     pub header_line: usize,
+    /// Column names from the header row.
     pub columns: Vec<String>,
+    /// Data rows (the separator row is not included).
     pub rows: Vec<TableRow>,
 }
 
+/// A single data row in a [`Table`].
 #[derive(Debug)]
 pub struct TableRow {
+    /// 1-based line number of this row.
     pub line: usize,
+    /// Cell values in column order.
     pub cells: Vec<String>,
 }
 
+/// Parse structmd text into a [`Document`] tree.
+///
+/// The parser is permissive and never fails. Unrecognized content is silently ignored.
+/// Use [`crate::schema::load_schema`] and a validator to check structural correctness.
+///
+/// Fenced code blocks with an info string are captured as properties;
+/// blocks without an info string are ignored entirely.
 pub fn parse(text: &str) -> Document {
     let lines: Vec<&str> = text.lines().collect();
     let mut doc = Document { nodes: Vec::new() };
@@ -87,8 +130,20 @@ pub fn parse(text: &str) -> Document {
                         line: code_fence_start,
                     };
                     if let Some(sec) = current_h3.as_mut().or(current_h2.as_mut()) {
+                        if sec.properties.iter().any(|p| p.key == prop.key) {
+                            eprintln!(
+                                "structmd warning: line {}: fence tag `{}` shadows a list-item property of the same name in section `{}`",
+                                prop.line, prop.key, sec.heading.text
+                            );
+                        }
                         sec.properties.push(prop);
                     } else if let Some(node) = doc.nodes.last_mut() {
+                        if node.properties.iter().any(|p| p.key == prop.key) {
+                            eprintln!(
+                                "structmd warning: line {}: fence tag `{}` shadows a list-item property of the same name",
+                                prop.line, prop.key
+                            );
+                        }
                         node.properties.push(prop);
                     }
                 }

@@ -14,6 +14,10 @@ use std::fmt;
 /// Implement this on your error enum to enable structmd error output.
 /// Each variant writes its fields to the formatter.
 pub trait Diagnostic {
+    /// Write this error's fields to the formatter.
+    ///
+    /// Implementations call [`ErrorFormatter::code`], [`ErrorFormatter::line`],
+    /// [`ErrorFormatter::field`], and optionally [`ErrorFormatter::fix`].
     fn render(&self, f: &mut ErrorFormatter);
 }
 
@@ -234,6 +238,7 @@ pub struct Error {
 }
 
 impl Error {
+    /// Create a new error with the minimum required fields.
     pub fn new(file: &str, line: usize, section: &str, code: &'static str) -> Self {
         Self {
             file: file.to_string(),
@@ -247,21 +252,25 @@ impl Error {
         }
     }
 
+    /// Set the property key involved in this error.
     pub fn with_key(mut self, key: &str) -> Self {
         self.key = key.to_string();
         self
     }
 
+    /// Set the actual value that caused the error.
     pub fn with_got(mut self, got: &str) -> Self {
         self.got = got.to_string();
         self
     }
 
+    /// Set the expected value or type description.
     pub fn with_expected(mut self, expected: &str) -> Self {
         self.expected = expected.to_string();
         self
     }
 
+    /// Override the auto-derived fix text.
     pub fn with_fix(mut self, fix: &str) -> Self {
         self.fix = fix.to_string();
         self

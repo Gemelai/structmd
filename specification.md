@@ -157,15 +157,19 @@ Production names are lowercase identifiers. The production named `document` is t
 | `H2("text")` | An H2 heading with exact text |
 | `H2(IDENTIFIER)` | An H2 heading whose text matches `[a-zA-Z0-9_-]+` |
 | `H2(SNAKE_CASE)` | An H2 heading whose text matches `[a-z][a-z0-9_]*` |
+| `H2(KEBAB_CASE)` | An H2 heading whose text matches `[a-z][a-z0-9-]*` |
 | `H3` | An H3 heading, any text |
 | `H3("text")` | An H3 heading with exact text |
 | `H3(IDENTIFIER)` | An H3 heading matching `[a-zA-Z0-9_-]+` |
 | `H3(SNAKE_CASE)` | An H3 heading matching `[a-z][a-z0-9_]*` |
+| `H3(KEBAB_CASE)` | An H3 heading matching `[a-z][a-z0-9-]*` |
 | `prose` | Expects prose text under this heading |
 | `property` | Expects one or more `- key: value` lines |
 | `table` | Expects a markdown table |
 
 `IDENT` is a synonym for `IDENTIFIER`.
+
+This notation does not support alternation (`A | B`) or grouping (`(A B)+`). Use separate productions instead — a production reference can carry a quantifier.
 
 ### 4.3 Quantifiers
 

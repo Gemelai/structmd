@@ -208,7 +208,7 @@ fn main() {
 
 ## Error codes
 
-The error codes come from the structured markdown error schema (`schemas/errors.schema.conf.md`). Use the standard codes when they fit:
+Use the standard error codes when they fit — they are defined in the spec (§6.4) and reproduced here:
 
 | Code | Meaning |
 |------|---------|
