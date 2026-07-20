@@ -1,11 +1,11 @@
-/// Schema types for structmd validation and codegen.
-///
-/// A schema is itself a structmd file containing:
-///   - ` ```grammar ` block: structural grammar (document shape)
-///   - ` ```types ` or ` ```types:production ` block: property type constraints
-///   - ` ```table ` or ` ```table:production ` block: table column constraints
-///
-/// Load a schema with [`load_schema`], then use it with a validator or codegen.
+//! Schema types for structmd validation and codegen.
+//!
+//! A schema is itself a structmd file containing:
+//!   - ` ```grammar ` block: structural grammar (document shape)
+//!   - ` ```types ` or ` ```types:production ` block: property type constraints
+//!   - ` ```table ` or ` ```table:production ` block: table column constraints
+//!
+//! Load a schema with [`load_schema`], then use it with a validator or codegen.
 
 use std::collections::BTreeMap;
 
@@ -157,21 +157,21 @@ impl NamePattern {
             NamePattern::Exact(expected) => name == expected,
             NamePattern::SnakeCase => {
                 !name.is_empty()
-                    && name.chars().next().map_or(false, |c| c.is_ascii_lowercase())
+                    && name.chars().next().is_some_and(|c| c.is_ascii_lowercase())
                     && name
                         .chars()
                         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
             }
             NamePattern::KebabCase => {
                 !name.is_empty()
-                    && name.chars().next().map_or(false, |c| c.is_ascii_lowercase())
+                    && name.chars().next().is_some_and(|c| c.is_ascii_lowercase())
                     && name
                         .chars()
                         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
             }
             NamePattern::Ident => {
                 !name.is_empty()
-                    && name.chars().next().map_or(false, |c| c.is_ascii_alphabetic())
+                    && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
                     && name
                         .chars()
                         .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
@@ -347,6 +347,7 @@ pub fn load_schema(text: &str, schema_name: &str) -> Result<Schema, String> {
 
 // ── Grammar resolution ──
 
+#[allow(clippy::too_many_arguments)]
 fn resolve_tokens(
     tokens: &[String],
     productions: &BTreeMap<String, Vec<String>>,
@@ -484,7 +485,7 @@ fn resolve_tokens(
 
 fn find_last_section_mut<'a>(
     h1_nodes: &'a mut [H1Schema],
-    sections: &'a mut Vec<SectionSchema>,
+    sections: &'a mut [SectionSchema],
 ) -> Option<&'a mut SectionSchema> {
     // Prefer the deepest section in the last H1 node
     if let Some(h1) = h1_nodes.last_mut() {

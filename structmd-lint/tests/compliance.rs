@@ -1,17 +1,17 @@
-/// Compliance test suite for conf.md
-///
-/// Runs mdlint against fixture files in tests/fixtures/.
-/// Valid fixtures must lint with 0 errors.
-/// Invalid fixtures must produce errors matching the expected .errors.md file.
-///
-/// The .errors.md files use a subset of conf.md: each H2 error section lists
-/// the expected code/section/key/got fields. The test checks that every expected
-/// error appears in the actual output (by matching those fields).
+//! Compliance test suite for structmd
+//!
+//! Runs structmd-lint against fixture files in tests/fixtures/.
+//! Valid fixtures must lint with 0 errors.
+//! Invalid fixtures must produce errors matching the expected .errors.md file.
+//!
+//! The .errors.md files use a subset of structmd: each H2 error section lists
+//! the expected code/section/key/got fields. The test checks that every expected
+//! error appears in the actual output (by matching those fields).
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn mdlint_binary() -> PathBuf {
+fn lint_binary() -> PathBuf {
     let mut path = std::env::current_exe().unwrap();
     path.pop(); // remove test binary name
     path.pop(); // remove deps/
@@ -26,13 +26,13 @@ fn fixtures_dir() -> PathBuf {
         .join("tests/fixtures")
 }
 
-fn run_mdlint(schema: &Path, input: &Path) -> (i32, String) {
-    let output = Command::new(mdlint_binary())
+fn run_lint(schema: &Path, input: &Path) -> (i32, String) {
+    let output = Command::new(lint_binary())
         .arg("--schema")
         .arg(schema)
         .arg(input)
         .output()
-        .expect("failed to run mdlint");
+        .expect("failed to run structmd-lint");
 
     let code = output.status.code().unwrap_or(-1);
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -77,7 +77,7 @@ fn parse_expected_errors(text: &str) -> Vec<ExpectedError> {
     expected
 }
 
-/// Check that an expected error appears in the actual mdlint output.
+/// Check that an expected error appears in the actual linter output.
 /// The output is a markdown table — match by checking each row contains the expected values.
 fn actual_contains_expected(actual_text: &str, expected: &ExpectedError) -> bool {
     // Simple text matching on table rows — each row is a | delimited line
@@ -91,13 +91,13 @@ fn actual_contains_expected(actual_text: &str, expected: &ExpectedError) -> bool
         }
 
         let matches_code = expected.code.as_ref()
-            .map_or(true, |c| line.contains(c.as_str()));
+            .is_none_or(|c| line.contains(c.as_str()));
         let matches_section = expected.section.as_ref()
-            .map_or(true, |s| line.contains(s.as_str()));
+            .is_none_or(|s| line.contains(s.as_str()));
         let matches_key = expected.key.as_ref()
-            .map_or(true, |k| line.contains(k.as_str()));
+            .is_none_or(|k| line.contains(k.as_str()));
         let matches_got = expected.got.as_ref()
-            .map_or(true, |g| line.contains(g.as_str()));
+            .is_none_or(|g| line.contains(g.as_str()));
 
         if matches_code && matches_section && matches_key && matches_got {
             return true;
@@ -116,7 +116,7 @@ fn test_valid(name: &str) {
     assert!(input.exists(), "fixture not found: {}", input.display());
     assert!(schema.exists(), "schema not found: {}", schema.display());
 
-    let (code, output) = run_mdlint(&schema, &input);
+    let (code, output) = run_lint(&schema, &input);
     assert_eq!(
         code, 0,
         "expected valid file to pass lint.\nFile: {}\nOutput:\n{}",
@@ -190,7 +190,7 @@ fn test_invalid(name: &str) {
         errors_file.display()
     );
 
-    let (code, output) = run_mdlint(&schema, &input);
+    let (code, output) = run_lint(&schema, &input);
     assert_eq!(
         code, 1,
         "expected invalid file to fail lint.\nFile: {}\nOutput:\n{}",

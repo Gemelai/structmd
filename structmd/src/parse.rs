@@ -1,7 +1,7 @@
-/// structmd parser — produces an untyped [`Document`] tree from structmd text.
-///
-/// The parser is permissive: it extracts structure without validating.
-/// Validation is done separately against a schema via [`crate::schema::load_schema`].
+//! structmd parser — produces an untyped [`Document`] tree from structmd text.
+//!
+//! The parser is permissive: it extracts structure without validating.
+//! Validation is done separately against a schema via [`crate::schema::load_schema`].
 
 /// The root of a parsed structmd document.
 ///
@@ -125,7 +125,7 @@ pub fn parse(text: &str) -> Document {
                 if let Some(key) = code_fence_key.take() {
                     let prop = Property {
                         key,
-                        value: code_fence_buf.drain(..).collect::<Vec<_>>().join("\n"),
+                        value: std::mem::take(&mut code_fence_buf).join("\n"),
                         bold: false,
                         line: code_fence_start,
                     };
@@ -150,7 +150,7 @@ pub fn parse(text: &str) -> Document {
                 continue;
             }
             // Opening fence
-            let info = trimmed[3..].trim();
+            let info = trimmed.strip_prefix("```").unwrap_or_default().trim();
             in_code_fence = true;
             if !info.is_empty() && !info.contains(' ') {
                 code_fence_key = Some(info.to_string());

@@ -1,4 +1,4 @@
-# mdlint
+# structmd-lint
 
 ## error-1
 

@@ -1,9 +1,9 @@
-/// mdlint — Schema-driven linter for conf.md files.
-///
-/// Validates a markdown config file against a conf.md schema
-/// containing ```grammar, ```types, and ```table blocks.
-///
-/// Usage: mdlint --schema <schema.conf.md> <file.conf.md>
+//! structmd-lint — Schema-driven linter for structured markdown files.
+//!
+//! Validates a structmd document against a schema
+//! containing ```grammar, ```types, and ```table blocks.
+//!
+//! Usage: structmd-lint --schema <schema.md> <file.md>
 
 mod validate;
 
@@ -12,12 +12,12 @@ use std::path::PathBuf;
 use std::process;
 
 #[derive(Parser)]
-#[command(name = "mdlint", about = "Schema-driven linter for conf.md files")]
+#[command(name = "structmd-lint", about = "Schema-driven linter for structured markdown files")]
 struct Cli {
-    /// Path to the conf.md file to lint
+    /// Path to the structmd file to lint
     file: PathBuf,
 
-    /// Path to the schema file (conf.md with ```grammar, ```types, ```table blocks)
+    /// Path to the schema file (a structmd document with ```grammar, ```types, ```table blocks)
     #[arg(long)]
     schema: PathBuf,
 }
@@ -62,7 +62,7 @@ fn main() {
     let errors = validate::validate(&doc, &schema, &path_str);
 
     if !errors.is_empty() {
-        print!("{}", structmd::errors::format_errors("mdlint", &schema_str, &errors));
+        print!("{}", structmd::errors::format_errors("structmd-lint", &schema_str, &errors));
         process::exit(1);
     }
 }

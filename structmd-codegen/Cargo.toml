@@ -1,9 +1,14 @@
 [package]
 name = "structmd-codegen"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
 description = "Generate typed Rust config loaders from structured markdown schemas"
+readme = "README.md"
+keywords = ["markdown", "schema", "codegen", "config"]
+categories = ["development-tools::build-utils"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
-structmd = { path = "../structmd" }
+structmd = { workspace = true }

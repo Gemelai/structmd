@@ -1,14 +1,14 @@
-/// structmd-workflow — minimal workflow engine.
-///
-/// Reads a workflow document, validates it against the schema,
-/// and runs each step's command in dependency order.
-///
-/// Usage: structmd-workflow <workflow.md>
-///
-/// Exit codes:
-///   0 — all steps succeeded
-///   1 — validation error or step failure
-///   2 — usage error
+//! structmd-workflow — minimal workflow engine.
+//!
+//! Reads a workflow document, validates it against the schema,
+//! and runs each step's command in dependency order.
+//!
+//! Usage: structmd-workflow <workflow.md>
+//!
+//! Exit codes:
+//!   0 — all steps succeeded
+//!   1 — validation error or step failure
+//!   2 — usage error
 
 include!(concat!(env!("OUT_DIR"), "/workflow_config.rs"));
 

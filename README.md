@@ -104,13 +104,18 @@ The crate does not prescribe how errors propagate internally. Use `?`, `thiserro
 
 | Crate | Purpose |
 |-------|---------|
-| `structmd` | Parser, schema loader, `Diagnostic` trait, error renderer |
-| `structmd-lint` | CLI validator: `structmd-lint --schema schema.md file.md` |
-| `structmd-codegen` | CLI code generator: emits typed Rust structs from a schema |
+| [`structmd`](https://crates.io/crates/structmd) | Parser, schema loader, `Diagnostic` trait, error renderer |
+| [`structmd-lint`](https://crates.io/crates/structmd-lint) | CLI validator: `structmd-lint --schema schema.md file.md` |
+| [`structmd-codegen`](https://crates.io/crates/structmd-codegen) | Code generator: emits typed Rust structs from a schema, as a library for `build.rs` or a CLI |
+
+```sh
+cargo add structmd              # library: parse, validate, render errors
+cargo install structmd-lint     # CLI validator
+```
 
 ## Specification
 
-See `specification.md` for the full format specification. The compliance test suite in `tests/fixtures/` is normative — it defines expected behavior for any conformant implementation.
+See [specification.md](https://github.com/Gemelai/structmd/blob/main/specification.md) for the full format specification. The compliance test suite in [tests/fixtures/](https://github.com/Gemelai/structmd/tree/main/tests/fixtures) is normative — it defines expected behavior for any conformant implementation.
 
 ## License
 

@@ -1,19 +1,20 @@
 [package]
 name = "structmd-integration"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
 description = "Integration test: minimal workflow engine built on structmd"
+publish = false
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "structmd-workflow"
 path = "src/main.rs"
 
 [dependencies]
-structmd = { path = "../structmd" }
+structmd = { workspace = true }
 
 [build-dependencies]
-structmd-codegen = { path = "../structmd-codegen" }
+structmd-codegen = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"

@@ -1,11 +1,11 @@
-/// Structured error reporting in structmd format.
-///
-/// Any program can report errors as structured markdown by:
-/// 1. Defining an error enum
-/// 2. Implementing `Diagnostic` on it
-/// 3. Calling `render()` or `render_all()` in main
-///
-/// See error-handling.md for the full guide.
+//! Structured error reporting in structmd format.
+//!
+//! Any program can report errors as structured markdown by:
+//! 1. Defining an error enum
+//! 2. Implementing `Diagnostic` on it
+//! 3. Calling `render()` or `render_all()` in main
+//!
+//! See the [error handling guide](https://github.com/Gemelai/structmd/blob/main/error-handling.md) for the full pattern.
 
 use std::fmt;
 
@@ -221,9 +221,9 @@ pub fn render_vec_verbose<E: Diagnostic>(source: &str, errors: &[E]) -> String {
     render_all_verbose(source, &refs)
 }
 
-// ── Legacy Error struct (used by mdlint validate.rs) ──
+// ── Flat Error struct (used by structmd-lint's validator) ──
 
-/// Flat error struct used by mdlint's validator.
+/// Flat error struct used by structmd-lint's validator.
 /// Implements Diagnostic so it can be rendered with the same formatter.
 #[derive(Debug)]
 pub struct Error {
@@ -459,7 +459,7 @@ mod tests {
         let err = Error::new("test.md", 5, "Container", "missing_property")
             .with_key("image")
             .with_expected("string");
-        let output = render("mdlint", &err);
+        let output = render("structmd-lint", &err);
         assert!(output.contains("missing_property"), "missing code:\n{}", output);
         assert!(output.contains("image"), "missing key:\n{}", output);
         assert!(output.contains("add `- image: <value>`"), "missing fix:\n{}", output);

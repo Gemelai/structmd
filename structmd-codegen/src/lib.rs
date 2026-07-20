@@ -1,8 +1,8 @@
-/// structmd-codegen — Generate Rust config loaders from structured markdown schemas.
-///
-/// Reads a .schema.conf.md file and emits a .rs file containing:
-/// - Typed structs matching the grammar productions
-/// - A parse() function that walks a structmd::parse::Document into those structs
+//! structmd-codegen — Generate Rust config loaders from structured markdown schemas.
+//!
+//! Reads a structmd schema file and emits a .rs file containing:
+//! - Typed structs matching the grammar productions
+//! - A parse() function that walks a structmd::parse::Document into those structs
 
 use structmd::schema::{
     H1Schema, NamePattern, Quantity, Schema, SectionSchema, ValueType, load_schema,
@@ -107,11 +107,10 @@ fn emit_h1_structs(h1: &H1Schema, schema: &Schema, out: &mut String) {
             for (key, prop) in props {
                 let rust_type = value_type_to_rust(&prop.value_type);
                 let is_list = matches!(prop.value_type, ValueType::List(_));
-                let rust_type = if is_list {
-                    rust_type
-                } else if prop.default.is_some() && !prop.required {
-                    rust_type
-                } else if !prop.required {
+                // Option<T> only for optional scalars with no default; lists
+                // default to empty vec and defaults are always populated
+                let optional = !is_list && !prop.required && prop.default.is_none();
+                let rust_type = if optional {
                     format!("Option<{}>", rust_type)
                 } else {
                     rust_type
@@ -160,11 +159,10 @@ fn emit_section_struct(sec: &SectionSchema, schema: &Schema, out: &mut String) {
     for (key, prop) in props {
         let rust_type = value_type_to_rust(&prop.value_type);
         let is_list = matches!(prop.value_type, ValueType::List(_));
-        let rust_type = if is_list {
-            rust_type // lists default to empty vec, never Option
-        } else if prop.default.is_some() && !prop.required {
-            rust_type // has default, always populated
-        } else if !prop.required {
+        // Option<T> only for optional scalars with no default; lists
+        // default to empty vec and defaults are always populated
+        let optional = !is_list && !prop.required && prop.default.is_none();
+        let rust_type = if optional {
             format!("Option<{}>", rust_type)
         } else {
             rust_type
@@ -309,7 +307,7 @@ fn emit_h1_parse_fn(h1: &H1Schema, schema: &Schema, out: &mut String) {
     writeln!(out, "    {} {{", type_name).unwrap();
     if h1.expects_properties {
         let props = h1.properties.as_ref().unwrap_or(&schema.global_properties);
-        for (key, _) in props {
+        for key in props.keys() {
             writeln!(out, "        {},", key).unwrap();
         }
     }
@@ -405,7 +403,7 @@ fn emit_section_parse_fn(sec: &SectionSchema, schema: &Schema, out: &mut String)
     if sec.expects_prose {
         writeln!(out, "        prose,").unwrap();
     }
-    for (key, _) in props {
+    for key in props.keys() {
         writeln!(out, "        {},", key).unwrap();
     }
     for child in &sec.children {
@@ -482,27 +480,21 @@ fn emit_child_extraction(sec: &SectionSchema, _schema: &Schema, out: &mut String
 // ── Naming helpers ──
 
 fn h1_field_name(h1: &H1Schema) -> String {
-    h1.production_name
-        .as_ref()
-        .map(|s| s.clone())
+    h1.production_name.clone()
         .or_else(|| h1.text.as_ref().map(|t| to_snake_case(t)))
         .unwrap_or_else(|| "root".to_string())
 }
 
 fn h1_type_name(h1: &H1Schema) -> String {
     let base = h1
-        .production_name
-        .as_ref()
-        .map(|s| s.clone())
+        .production_name.clone()
         .or_else(|| h1.text.as_ref().map(|t| to_snake_case(t)))
         .unwrap_or_else(|| "root".to_string());
     to_pascal_case(&base) + "Config"
 }
 
 fn section_field_name(sec: &SectionSchema) -> String {
-    sec.production_name
-        .as_ref()
-        .map(|s| s.clone())
+    sec.production_name.clone()
         .or_else(|| match &sec.name_pattern {
             NamePattern::Exact(name) => Some(to_snake_case(name)),
             _ => None,
@@ -512,9 +504,7 @@ fn section_field_name(sec: &SectionSchema) -> String {
 
 fn section_type_name(sec: &SectionSchema) -> String {
     let base = sec
-        .production_name
-        .as_ref()
-        .map(|s| s.clone())
+        .production_name.clone()
         .or_else(|| match &sec.name_pattern {
             NamePattern::Exact(name) => Some(to_snake_case(name)),
             _ => None,
@@ -546,7 +536,7 @@ fn value_type_to_rust(vt: &ValueType) -> String {
 }
 
 fn to_pascal_case(s: &str) -> String {
-    s.split(|c: char| c == '_' || c == '-' || c == ' ')
+    s.split(['_', '-', ' '])
         .filter(|w| !w.is_empty())
         .map(|w| {
             let mut chars = w.chars();

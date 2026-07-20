@@ -1,9 +1,17 @@
 [package]
 name = "structmd-lint"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
 description = "Schema-driven linter for structured markdown files"
+readme = "README.md"
+keywords = ["markdown", "schema", "validation", "lint"]
+categories = ["command-line-utilities", "development-tools"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+# The compliance fixtures live at the workspace root and are not packaged,
+# so the tests directory is excluded from the published crate.
+exclude = ["/tests"]
 
 [[bin]]
 name = "structmd-lint"
@@ -11,4 +19,4 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-structmd = { path = "../structmd" }
+structmd = { workspace = true }

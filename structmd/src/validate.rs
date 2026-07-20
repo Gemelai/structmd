@@ -1,7 +1,7 @@
-/// Schema-driven validator for structmd documents.
-///
-/// Takes a parsed [`Document`] and a loaded [`Schema`] and returns a list of
-/// [`Error`]s. The document is valid if the returned list is empty.
+//! Schema-driven validator for structmd documents.
+//!
+//! Takes a parsed [`Document`] and a loaded [`Schema`] and returns a list of
+//! [`Error`]s. The document is valid if the returned list is empty.
 
 use crate::errors::Error;
 use crate::parse::{Document, H1Node, Section};
@@ -33,7 +33,7 @@ pub fn validate(doc: &Document, schema: &Schema, file: &str) -> Vec<Error> {
             let found = doc.nodes[doc_idx..].iter().enumerate().find(|(_, n)| {
                 n.heading
                     .as_ref()
-                    .map_or(false, |h| h.text == *expected_text)
+                    .is_some_and(|h| h.text == *expected_text)
             });
             match found {
                 Some((offset, node)) => {

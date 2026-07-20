@@ -114,7 +114,7 @@ fn main() {
 }
 
 fn run() -> Result<(), MyError> {
-    let config = load_config(std::path::Path::new("config.conf.md"))?;
+    let config = load_config(std::path::Path::new("config.md"))?;
     // ... do stuff with config ...
     Ok(())
 }
@@ -129,7 +129,7 @@ That's it. When the program fails, the output looks like:
 
 ## error-1
 
-- file: config.conf.md
+- file: config.md
 - line: 3
 - section: item
 - code: missing_property
@@ -137,7 +137,7 @@ That's it. When the program fails, the output looks like:
 - fix: add `- name: <value>`
 ```
 
-An agent reading that knows: read line 3 of config.conf.md, add `- name: <value>` to the `item` section. A human reading it sees the same thing, formatted as readable markdown.
+An agent reading that knows: read line 3 of config.md, add `- name: <value>` to the `item` section. A human reading it sees the same thing, formatted as readable markdown.
 
 ## On large error enums
 
