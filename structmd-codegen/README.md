@@ -2,7 +2,9 @@
 
 Generate typed Rust config loaders from [structmd](https://crates.io/crates/structmd) schemas.
 
-Reads a structmd schema and emits Rust source containing typed structs matching the grammar productions, plus a `parse()` function that walks a `structmd::parse::Document` into those structs.
+Reads a structmd schema and emits Rust source containing typed structs matching the grammar productions, plus a `parse()` function that validates input against the embedded schema and walks the validated document into those structs.
+
+Validation runs through `structmd::validate` — the same validator `structmd-lint` uses — so the generated loader reports the same structured errors as the linter: `Result<Config, Vec<structmd::errors::Error>>`, renderable as a structmd error table via `structmd::errors::render_vec`. A `parse_with_source(text, source)` variant fills the `file` field of errors with a source name.
 
 ## As a build dependency
 

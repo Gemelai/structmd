@@ -119,14 +119,34 @@ fn dynamic_section_has_name_field() {
 #[test]
 fn generates_parse_fn() {
     let code = generate_from_text(TOOLS_SCHEMA, "tools");
-    assert!(code.contains("pub fn parse(text: &str) -> Result<ToolsConfig, Vec<String>>"),
+    assert!(code.contains("pub fn parse(text: &str) -> Result<ToolsConfig, Vec<structmd::errors::Error>>"),
         "missing parse function:\n{}", code);
+    assert!(code.contains("pub fn parse_with_source(text: &str, source: &str) -> Result<ToolsConfig, Vec<structmd::errors::Error>>"),
+        "missing parse_with_source function:\n{}", code);
 }
 
 #[test]
 fn generated_code_uses_structmd_parse() {
     let code = generate_from_text(TOOLS_SCHEMA, "tools");
-    assert!(code.contains("structmd::parse::parse(text)"), "should use confmd parser:\n{}", code);
+    assert!(code.contains("structmd::parse::parse(text)"), "should use structmd parser:\n{}", code);
+}
+
+#[test]
+fn generated_parse_validates_before_walking() {
+    let code = generate_from_text(TOOLS_SCHEMA, "tools");
+    assert!(code.contains("const SCHEMA_TEXT: &str ="), "should embed schema text:\n{}", code);
+    assert!(code.contains("structmd::schema::load_schema(SCHEMA_TEXT, SCHEMA_NAME)"),
+        "should load embedded schema:\n{}", code);
+    assert!(code.contains("structmd::validate::validate(&doc, &schema, source)"),
+        "should validate through the shared validator:\n{}", code);
+}
+
+#[test]
+fn generated_walk_collects_no_errors() {
+    // Validation happens before the walk — walkers must not carry error state
+    let code = generate_from_text(SOZU_SCHEMA, "sozu");
+    assert!(!code.contains("errors.push"), "walk should not collect errors:\n{}", code);
+    assert!(!code.contains("errors: &mut"), "walkers should not take an errors param:\n{}", code);
 }
 
 // ── End-to-end: compile and run generated code ──

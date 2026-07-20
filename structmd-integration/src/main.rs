@@ -31,23 +31,11 @@ fn main() {
         }
     };
 
-    // Validate against schema before parsing
-    let schema_text = include_str!("../schema/workflow.schema.md");
-    let schema = structmd::schema::load_schema(schema_text, "workflow").unwrap();
-    let doc = structmd::parse::parse(&text);
-    let errors = structmd::lint(&doc, &schema, path);
-    if !errors.is_empty() {
-        print!("{}", structmd::errors::render_vec("structmd-workflow", &errors));
-        exit(1);
-    }
-
-    // Parse into typed config
-    let config = match parse(&text) {
+    // The generated loader validates against the embedded schema before walking
+    let config = match parse_with_source(&text, path) {
         Ok(c) => c,
-        Err(errs) => {
-            for e in errs {
-                eprintln!("error: {}", e);
-            }
+        Err(errors) => {
+            print!("{}", structmd::errors::render_vec("structmd-workflow", &errors));
             exit(1);
         }
     };
