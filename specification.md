@@ -1,13 +1,12 @@
 # structmd Specification
 
-Version: 0 (pre-release)
 Copyright Susan Roylance and Stephen Roylance. MIT licensed.
 
 ---
 
-structmd is a structured document format. structmd documents are not markdown documents that happen to have structure — they are structured documents that happen to be readable as markdown. A markdown renderer will display them sensibly, but the renderer is not the authority on what they mean. The schema is.
+structmd is a structured document format. structmd documents are markdown text described by a fixed schema. Parsing is deterministic and needs no schema; validation is schema-driven; and typed loaders can be generated from the schema rather than written by hand. A markdown renderer will display them sensibly, but the renderer is not the authority on what they mean. The schema is.
 
-The format is defined by this specification and by the compliance test suite in `tests/fixtures/`. Where this document and the compliance suite disagree, the compliance suite is normative. The spec describes the suite; if they conflict, the spec has a bug.
+A language-agnostic compliance test suite accompanies this specification in `tests/fixtures/` (section 8).
 
 ---
 
@@ -324,5 +323,3 @@ A conformant implementation must produce at least the errors listed in the `.err
 structmd began as a solution to a practical problem — structured config files that agents could read and write reliably — before it had a specification or a compliance suite. The implementation came first, built iteratively with AI assistance to solve real problems in a real system. The architecture emerged from using it. The compliance suite was extracted from behavior that already worked. The specification was written last, from the compliance suite, as a description of what the system had become.
 
 This is backwards from how format specifications are usually written. The normal order is: specify, implement, test. Here the order was: use, observe, specify. That inversion was only possible because the implementation cost was low enough to iterate freely — to let the design reveal itself through use rather than planning it in advance.
-
-The reference implementation is an artifact of that process, not a ground-up construction from the spec. Where the spec and the implementation disagree, the compliance suite is the arbiter.

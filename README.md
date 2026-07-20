@@ -1,12 +1,6 @@
 # structmd
 
-A structured document format with no punctuation syntax.
-
-Structure in structmd comes from line prefixes — `#`, `##`, `-` — not from brackets, quotes, or commas. That single property is why the format works for three different audiences for the same reason:
-
-- **Easy to generate**, even for weak models. Schemas are written once by a developer or capable model — that encodes the domain expertise. Documents written against a known schema have no brackets to match, no quotes to escape, no commas to forget. Fill in the fields, write the prose. The linter validates the output and returns structured fix text; the model corrects and retries without human intervention.
-- **Easy to review** for humans. The structure is visually obvious. No punctuation noise to read past.
-- **Deterministic to parse**. Every line classifies itself from its prefix. No ambiguity, no backtracking, no context-sensitive tokenization.
+A structured document format overlaid on markdown syntax.
 
 A structmd document has a schema. The schema defines which headings appear, in what order, with what typed properties. A document that passes validation has exactly the structure the schema promised — the consumer, whether an agent or a process, can trust it without defensive parsing.
 
@@ -58,7 +52,7 @@ Good fits: config files, error reports, tool registries, evaluation documents, a
 
 ## Error handling
 
-structmd includes an opinionated pattern for structured error output at process boundaries.
+structmd includes an opinionated pattern for structured error output at process boundaries in Rust.
 
 The opinion: errors should be defined as explicit enum variants, each carrying the data relevant to that failure mode. Not strings. Not opaque boxes. Named, typed variants — one per thing that can go wrong.
 
@@ -115,7 +109,7 @@ cargo install structmd-lint     # CLI validator
 
 ## Specification
 
-See [specification.md](https://github.com/Gemelai/structmd/blob/main/specification.md) for the full format specification. The compliance test suite in [tests/fixtures/](https://github.com/Gemelai/structmd/tree/main/tests/fixtures) is normative — it defines expected behavior for any conformant implementation.
+See [specification.md](https://github.com/Gemelai/structmd/blob/main/specification.md) for the full format specification. A compliance test suite for implementations lives in [tests/fixtures/](https://github.com/Gemelai/structmd/tree/main/tests/fixtures).
 
 ## License
 
